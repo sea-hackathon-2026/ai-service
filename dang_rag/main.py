@@ -19,9 +19,9 @@ load_dotenv()
 
 
 BASE_DIR   = Path(__file__).parent
-KB_PATH    = BASE_DIR / "data" / "knowledge_base.json"
-INPUT_PATH = BASE_DIR / "data" / "comments.json"
-OUT_PATH   = BASE_DIR / "data" / "output.json"
+KB_PATH    = BASE_DIR / "database" / "knowledge_base.json"
+INPUT_PATH = BASE_DIR / "database" / "comments.json"
+OUT_PATH   = BASE_DIR / "database" / "output.json"
 
 
 def _print_banner(msg: str):

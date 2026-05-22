@@ -1,0 +1,258 @@
+{
+  "product_name": "Cocoon Vietnam – Bộ sản phẩm Chăm sóc Da & Tóc",
+  "brand": "Cocoon Vietnam",
+  "website": "https://cocoonvietnam.com/",
+  "description": "Cocoon là thương hiệu mỹ phẩm thuần chay Việt Nam, sử dụng nguyên liệu thiên nhiên từ các vùng nông sản nổi tiếng Việt Nam. Sản phẩm lành tính, không thử nghiệm trên động vật, phù hợp với mọi loại da kể cả da nhạy cảm.",
+  "certifications": [
+    "Thuần chay (Vegan)",
+    "Không thử nghiệm trên động vật (Cruelty-Free)",
+    "Nguyên liệu thiên nhiên Việt Nam",
+    "CGMP – Tiêu chuẩn thực hành sản xuất tốt",
+    "Được kiểm nghiệm da liễu"
+  ],
+
+  "products": [
+    {
+      "id": "SP001",
+      "name": "Tẩy Da Chết Cà Phê Đắk Lắk",
+      "full_name": "Cà phê Đắk Lắk làm sạch da chết cơ thể 200ml",
+      "category": "Chăm sóc cơ thể",
+      "size": "200ml",
+      "price": 133000,
+      "description": "Hạt cà phê nguyên chất từ Đắk Lắk kết hợp với bơ ca cao Tiền Giang giúp làm sạch da chết cơ thể hiệu quả, làm đều màu da, khơi dậy năng lượng giúp da trở nên mềm mịn và rạng rỡ.",
+      "key_ingredients": [
+        "Hạt cà phê Đắk Lắk xay nhuyễn – tẩy tế bào chết, khơi dậy năng lượng",
+        "Bơ ca cao Tiền Giang – dưỡng ẩm, làm mềm da",
+        "Dầu dừa – dưỡng ẩm sâu"
+      ],
+      "how_to_use": "Làm ướt cơ thể, lấy lượng vừa đủ thoa đều lên da, massage nhẹ nhàng 5–10 phút theo chuyển động tròn, tắm lại với nước sạch.",
+      "frequency": "2–3 lần/tuần",
+      "benefits": [
+        "Loại bỏ tế bào chết hiệu quả",
+        "Da láng mịn, mướt mượt sau khi tắm",
+        "Cải thiện vùng da thô ráp, xỉn màu",
+        "Đều màu da, sáng khỏe",
+        "Không gây rát, không khô da"
+      ],
+      "suitable_for": "Mọi loại da, kể cả da nhạy cảm. Phù hợp cả nam và nữ.",
+      "scent": "Hương cà phê tự nhiên thơm lừng",
+      "skin_type": ["da thường", "da dầu", "da khô", "da nhạy cảm"],
+      "target_concern": ["da thô ráp", "da xỉn màu", "da sần sùi", "tẩy da chết"]
+    },
+    {
+      "id": "SP002",
+      "name": "Tẩy Da Chết Đường Thốt Nốt An Giang",
+      "full_name": "Đường thốt nốt An Giang làm sạch da chết cơ thể 200ml",
+      "category": "Chăm sóc cơ thể",
+      "size": "200ml",
+      "price": 162000,
+      "description": "Tinh thể đường thốt nốt nhuyễn mịn kết hợp với nam châm dưỡng ẩm Pentavitin, phức hợp dầu chưng cất phân tử gồm Passioline và Soline giúp nhẹ nhàng cuốn trôi tế bào chết, mang lại làn da mượt mà, đồng thời dưỡng ẩm sâu và củng cố hàng rào tự nhiên của da.",
+      "key_ingredients": [
+        "Đường thốt nốt An Giang xay mịn – tẩy tế bào chết siêu nhẹ nhàng",
+        "Pentavitin (nam châm dưỡng ẩm) – giữ ẩm 72 giờ",
+        "Passioline – dầu chưng cất phân tử từ hạt chanh leo",
+        "Soline – phức hợp dầu dưỡng",
+        "Vitamin B5 (Panthenol) – phục hồi và làm dịu da",
+        "Dầu màng gấc – giàu beta-carotene, dưỡng sáng da"
+      ],
+      "how_to_use": "Làm ướt cơ thể, lấy lượng vừa đủ xoa đều và massage nhẹ nhàng khắp người, tắm sạch lại với nước.",
+      "frequency": "2–3 lần/tuần",
+      "benefits": [
+        "Tẩy tế bào chết siêu nhẹ nhàng, không gây đau rát",
+        "Da mịn màng, thông thoáng, mềm mướt như da em bé",
+        "Dưỡng ẩm sâu, củng cố hàng rào da",
+        "Lưu lại mùi hương ngọt ngào, ấm áp",
+        "Đặc biệt phù hợp da nhạy cảm, da mỏng"
+      ],
+      "suitable_for": "Đặc biệt phù hợp da nhạy cảm, da mỏng manh, da dễ kích ứng. Phù hợp cả nam và nữ.",
+      "scent": "Hương ngọt nhẹ nhàng từ đường thốt nốt",
+      "skin_type": ["da nhạy cảm", "da mỏng", "da khô", "da thường"],
+      "target_concern": ["da nhạy cảm", "da sần sùi nhẹ", "dưỡng ẩm", "tẩy da chết nhẹ nhàng"]
+    },
+    {
+      "id": "SP003",
+      "name": "Nước Dưỡng Tóc Tinh Dầu Bưởi",
+      "full_name": "Nước dưỡng tóc tinh dầu bưởi 310ml",
+      "category": "Chăm sóc tóc",
+      "size": "310ml",
+      "price": 320000,
+      "description": "Sản phẩm treatment dành cho tóc, phù hợp với tình trạng tóc rụng, tóc yếu, tóc thưa mỏng. Ngăn ngừa 60% nguyên nhân rụng tóc, làm gia tăng mật độ tóc, giúp tóc dày lên trông thấy.",
+      "key_ingredients": [
+        "Tinh dầu bưởi Việt Nam – kích thích mọc tóc, giảm rụng",
+        "Baicapil – hoạt chất tăng mật độ tóc lên đến 121%",
+        "Bisabolol – làm dịu da đầu, chống viêm",
+        "Xylishine™ – dưỡng ẩm sâu cho tóc và da đầu",
+        "Vitamin B5 (Panthenol) – nuôi dưỡng, phục hồi tóc hư tổn"
+      ],
+      "how_to_use": "Lắc đều chai, xịt đều lên da đầu và tóc khi tóc đang khô hoặc sau khi gội sạch và sấy khô 80%. Dùng ngón tay mát-xa nhẹ nhàng cho dưỡng chất thấm sâu. Không cần rửa lại.",
+      "frequency": "1–2 lần/ngày",
+      "benefits": [
+        "Ngăn ngừa 60% nguyên nhân rụng tóc",
+        "Tóc con mọc lên tua tủa, tóc dày hơn trông thấy",
+        "Tóc đen, dày, chắc khỏe và mềm mượt",
+        "Nuôi dưỡng da đầu, cung cấp độ ẩm",
+        "Không gây bết dính, không nặng tóc",
+        "Hương tinh dầu bưởi tự nhiên thư giãn"
+      ],
+      "suitable_for": "Tóc rụng, tóc yếu, tóc thưa mỏng. Phù hợp cả nam và nữ.",
+      "scent": "Hương tinh dầu bưởi tươi mát, thư giãn",
+      "hair_type": ["tóc rụng", "tóc yếu", "tóc thưa mỏng", "tóc hư tổn"],
+      "target_concern": ["rụng tóc", "tóc thưa", "da đầu yếu", "kích thích mọc tóc"]
+    },
+    {
+      "id": "SP004",
+      "name": "Dầu Gội Bưởi Không Sulfate",
+      "full_name": "Dầu gội bưởi không sulfate 500ml",
+      "category": "Chăm sóc tóc",
+      "size": "500ml",
+      "price": 388000,
+      "description": "Từ tinh dầu vỏ bưởi Việt Nam truyền thống kết hợp với vitamin B5, hoạt chất dưỡng ẩm Xylishine™ cùng công thức dịu nhẹ không chứa sulfate, giúp làm sạch tóc và giảm gãy rụng, mang lại mái tóc đen dày, chắc khỏe và mượt mà.",
+      "key_ingredients": [
+        "Tinh dầu vỏ bưởi Việt Nam – làm sạch, kích thích mọc tóc",
+        "Xylishine™ – dưỡng ẩm, tạo độ bóng mượt",
+        "Vitamin B5 (Panthenol) – dưỡng tóc, phục hồi hư tổn",
+        "Công thức không sulfate – dịu nhẹ, không gây khô da đầu"
+      ],
+      "how_to_use": "Làm ướt tóc, lấy lượng dầu gội vừa đủ xoa đều lên tay để tạo bọt, massage nhẹ nhàng lên da đầu và tóc, xả sạch lại với nước.",
+      "frequency": "Dùng hằng ngày hoặc theo nhu cầu",
+      "benefits": [
+        "Làm sạch tóc và da đầu cực kỳ dịu nhẹ",
+        "Không gây khô da đầu, không kích ứng",
+        "Giảm gãy rụng tóc rõ rệt",
+        "Tóc con mọc tua tủa, tóc đen dày, bồng bềnh",
+        "Phù hợp da đầu nhạy cảm",
+        "Không chứa sulfate, paraben"
+      ],
+      "suitable_for": "Da đầu nhạy cảm, tóc yếu dễ gãy rụng. Phù hợp cả nam và nữ.",
+      "scent": "Hương bưởi nhẹ nhàng, tươi mát",
+      "hair_type": ["tóc yếu", "tóc gãy rụng", "da đầu nhạy cảm", "da đầu khô"],
+      "target_concern": ["rụng tóc", "da đầu nhạy cảm", "tóc yếu", "làm sạch dịu nhẹ"]
+    }
+  ],
+
+  "pricing": {
+    "SP001": {
+      "name": "Tẩy da chết cà phê Đắk Lắk 200ml",
+      "single": 133000,
+      "combo_2": 250000,
+      "combo_3": 360000,
+      "livestream_price": 115000,
+      "promotion": "Giảm 15% trên livestream, tặng sample khi mua 2 hũ trở lên"
+    },
+    "SP002": {
+      "name": "Tẩy da chết đường thốt nốt An Giang 200ml",
+      "single": 162000,
+      "combo_2": 300000,
+      "combo_3": 435000,
+      "livestream_price": 138000,
+      "promotion": "Giảm 15% trên livestream, tặng túi đựng mỹ phẩm khi mua combo"
+    },
+    "SP003": {
+      "name": "Nước dưỡng tóc tinh dầu bưởi 310ml",
+      "single": 320000,
+      "combo_with_sp004": 650000,
+      "livestream_price": 275000,
+      "promotion": "Giảm 14% trên livestream, mua kèm dầu gội tiết kiệm thêm 58k"
+    },
+    "SP004": {
+      "name": "Dầu gội bưởi không sulfate 500ml",
+      "single": 388000,
+      "combo_with_sp003": 650000,
+      "livestream_price": 330000,
+      "promotion": "Giảm 15% trên livestream, combo với nước dưỡng tóc siêu tiết kiệm"
+    }
+  },
+
+  "shipping": {
+    "provider": "Giao hàng nhanh (GHN) / Giao hàng tiết kiệm (GHTK)",
+    "coverage": "Ship toàn quốc 63 tỉnh thành",
+    "fee_hcm": "Miễn phí ship đơn từ 300k, dưới 300k phí 20.000đ",
+    "fee_hanoi": "Miễn phí ship đơn từ 300k, dưới 300k phí 25.000đ",
+    "fee_other": "Phí ship 30.000đ–45.000đ tùy tỉnh, miễn phí đơn từ 500k",
+    "estimated_days_hcm": "1–2 ngày",
+    "estimated_days_hanoi": "2–3 ngày",
+    "estimated_days_other": "3–5 ngày",
+    "packaging": "Đóng gói cẩn thận, bọc chống sốc, đảm bảo sản phẩm nguyên vẹn khi đến tay",
+    "note": "Đơn hàng trên livestream được ưu tiên xử lý và gửi trong ngày hoặc ngày hôm sau"
+  },
+
+  "health_notes": {
+    "general": "Sản phẩm Cocoon sử dụng nguyên liệu thiên nhiên, lành tính, đã được kiểm nghiệm da liễu.",
+    "pregnant": "Sản phẩm chăm sóc da và tóc của Cocoon dùng nguyên liệu thiên nhiên an toàn, tuy nhiên phụ nữ mang thai nên tham khảo ý kiến bác sĩ trước khi dùng để đảm bảo an toàn tuyệt đối.",
+    "children": "Dành cho người từ 12 tuổi trở lên. Trẻ nhỏ dưới 12 tuổi không khuyến khích sử dụng. Để xa tầm tay trẻ em.",
+    "sensitive_skin": "Đã kiểm nghiệm da liễu, phù hợp da nhạy cảm. Nếu kích ứng xuất hiện, ngưng dùng và tham khảo bác sĩ.",
+    "allergy": "Kiểm tra thành phần trước khi dùng nếu có dị ứng với cà phê, đường mía, hoặc tinh dầu citrus. Thử da trước ở vùng nhỏ.",
+    "vegan": "Tất cả sản phẩm đều thuần chay, không chứa thành phần từ động vật.",
+    "preservatives": "Sử dụng hệ bảo quản nhẹ, không paraben.",
+    "gluten_free": "Sản phẩm không chứa gluten."
+  },
+
+  "shelf_life": {
+    "SP001": "36 tháng kể từ ngày sản xuất. Sau khi mở: dùng trong 12 tháng.",
+    "SP002": "36 tháng kể từ ngày sản xuất. Sau khi mở: dùng trong 12 tháng.",
+    "SP003": "36 tháng kể từ ngày sản xuất. Sau khi mở: dùng trong 12 tháng.",
+    "SP004": "36 tháng kể từ ngày sản xuất. Sau khi mở: dùng trong 12 tháng.",
+    "storage": "Bảo quản nơi khô ráo, thoáng mát, tránh ánh nắng trực tiếp và nhiệt độ cao. Đậy kín nắp sau khi dùng."
+  },
+
+  "how_to_order": "Đặt hàng trực tiếp trên livestream bằng cách bấm vào giỏ hàng góc dưới màn hình hoặc comment số điện thoại để được hỗ trợ lên đơn. Ngoài ra có thể mua tại website cocoonvietnam.com, Shopee, Lazada, TikTok Shop, hoặc hệ thống cửa hàng Cocoon trên toàn quốc.",
+
+  "return_policy": "Đổi trả trong vòng 7 ngày nếu sản phẩm bị lỗi, vỡ, hoặc không đúng với mô tả. Liên hệ hotline hoặc inbox fanpage để được hỗ trợ.",
+
+  "contact": {
+    "website": "https://cocoonvietnam.com/",
+    "fanpage": "Cocoon Vietnam",
+    "hotline": "Inbox fanpage hoặc comment số điện thoại trong livestream",
+    "shopee": "Cocoon Vietnam Official Store trên Shopee",
+    "tiktok_shop": "Cocoon Vietnam trên TikTok Shop"
+  },
+
+  "faq": [
+    {
+      "q": "Sản phẩm có phải hàng chính hãng không?",
+      "a": "Dạ đây là sản phẩm chính hãng 100% từ Cocoon Vietnam, có đầy đủ tem nhãn và chứng nhận. Mọi người yên tâm ạ."
+    },
+    {
+      "q": "Tẩy da chết có dùng được cho mặt không?",
+      "a": "Sản phẩm tẩy da chết cà phê và đường thốt nốt được thiết kế cho cơ thể, không khuyến nghị dùng cho vùng da mặt vì hạt tẩy có thể hơi thô. Cocoon có dòng riêng cho da mặt ạ."
+    },
+    {
+      "q": "Hai loại tẩy da chết khác nhau thế nào?",
+      "a": "Tẩy da chết cà phê có hạt to hơn, phù hợp da thường đến dầu, tẩy mạnh hơn và có mùi cà phê thơm. Tẩy da chết đường thốt nốt hạt siêu mịn, nhẹ nhàng hơn, phù hợp da nhạy cảm và có thêm thành phần dưỡng ẩm sâu Pentavitin."
+    },
+    {
+      "q": "Nước dưỡng tóc và dầu gội có dùng cùng nhau không?",
+      "a": "Dạ có ạ! Hai sản phẩm này được thiết kế để dùng kết hợp. Gội đầu với dầu gội bưởi để làm sạch, sau đó dùng nước dưỡng tóc để điều trị rụng tóc và nuôi dưỡng da đầu. Dùng combo sẽ cho hiệu quả tốt nhất ạ."
+    },
+    {
+      "q": "Bao lâu thì thấy hiệu quả?",
+      "a": "Với tẩy da chết, mình có thể cảm nhận da mịn mượt ngay sau lần đầu dùng. Với sản phẩm tóc, thường sau 4–8 tuần dùng đều đặn sẽ thấy tóc giảm rụng và dày hơn rõ rệt ạ."
+    },
+    {
+      "q": "Có freeship không?",
+      "a": "Dạ có ạ! Đơn từ 300k miễn phí ship TP.HCM và Hà Nội, từ 500k miễn phí ship toàn quốc. Trên livestream hôm nay còn có ưu đãi thêm nữa ạ."
+    },
+    {
+      "q": "Mua bao nhiêu để được tặng quà?",
+      "a": "Trên phiên livestream hôm nay, mua combo 2 sản phẩm trở lên sẽ được tặng quà kèm và áp mã giảm thêm. Mình bấm vào giỏ hàng để thấy chi tiết khuyến mãi nha ạ."
+    },
+    {
+      "q": "Sản phẩm có phù hợp với da dầu mụn không?",
+      "a": "Dạ phù hợp ạ! Tẩy da chết giúp thông thoáng lỗ chân lông, giảm da dầu và mụn lưng. Công thức lành tính không làm kích ứng thêm da mụn ạ."
+    },
+    {
+      "q": "Cocoon có bán ở cửa hàng ngoài không?",
+      "a": "Dạ có ạ! Cocoon bán tại website cocoonvietnam.com, Shopee, Lazada, TikTok Shop và các hệ thống chuỗi mỹ phẩm. Nhưng mua trên livestream hôm nay sẽ được giá tốt nhất và quà tặng độc quyền ạ."
+    },
+    {
+      "q": "Nước dưỡng tóc có phải rửa lại không?",
+      "a": "Dạ không cần rửa lại ạ! Xịt lên da đầu và tóc rồi mát-xa nhẹ là xong, để dưỡng chất thấm vào da đầu suốt ngày. Sản phẩm không gây bết dính hay nặng tóc đâu ạ."
+    }
+  ],
+
+  "livestream_scripts": {
+    "opening": "Dạ em xin chào tất cả anh chị và các bạn đang xem live của Cocoon hôm nay nha! Hôm nay bên em có rất nhiều deal giảm giá độc quyền và quà tặng kèm cực hời chỉ có trên phiên live này thôi ạ.",
+    "order_confirmed": "Ôi cảm ơn mình đã chốt đơn nha! Em sẽ đóng gói cẩn thận, bọc chống sốc kỹ càng và gửi đi sớm nhất để sản phẩm nhanh về tay mình ạ.",
+    "cta_general": "Cả nhà ơi, những ưu đãi này chỉ có trong phiên live hôm nay thôi nha! Ai muốn mua thì bấm vào giỏ hàng góc dưới màn hình hoặc comment số điện thoại để em hỗ trợ lên đơn ngay ạ."
+  }
+}

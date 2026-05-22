@@ -1,0 +1,205 @@
+{
+  "pipeline_run": {
+    "input_file": "comments.json",
+    "total_comments": 30,
+    "filtered_out": 8,
+    "answered_batches": 10,
+    "total_latency_ms": 35112,
+    "model": "gpt-4o-mini",
+    "generated_at": "2026-05-22T03:40:13.318783+00:00"
+  },
+  "scripts": [
+    {
+      "batch_id": 1,
+      "intent": "order",
+      "emotion": "friendly",
+      "cta": "engage",
+      "confidence": 0.9,
+      "text": "Dạ để đặt hàng, bạn có thể bấm vào giỏ hàng ở góc dưới màn hình trên livestream hoặc comment số điện thoại để mình hỗ trợ lên đơn nha. Ngoài ra, bạn cũng có thể mua tại website cocoonvietnam.com, Shopee, Lazada, TikTok Shop hoặc các cửa hàng Cocoon trên toàn quốc. Hãy nhanh tay đặt hàng để nhận quà tặng và ưu đãi nha!",
+      "source_comments": [
+        "đặt hàng bằng cách nào ạ",
+        "inbox shop để order nha"
+      ],
+      "retrieved_docs": [
+        "order",
+        "faq",
+        "faq"
+      ],
+      "latency_ms": 4351,
+      "generated_at": "2026-05-22T03:39:42.576983+00:00"
+    },
+    {
+      "batch_id": 2,
+      "intent": "price",
+      "emotion": "enthusiastic",
+      "cta": "engage",
+      "confidence": 0.9,
+      "text": "Giá tẩy da chết cà phê Đắk Lắk là 115,000đ, đang có giảm giá 15% trong livestream này nha. Nếu bạn mua 2 hũ trở lên, sẽ được tặng sample nữa ạ. Ngoài ra, nếu bạn mua combo, sẽ nhận thêm quà và mã giảm giá nữa đó. Hãy nhanh tay comment hoặc inbox để đặt hàng nha!",
+      "source_comments": [
+        "giá bao nhiêu vậy shop ơi",
+        "có giảm giá không ạ",
+        "giá tẩy da chết cà phê bao nhiêu",
+        "có mã giảm giá không shop"
+      ],
+      "retrieved_docs": [
+        "pricing",
+        "faq",
+        "faq"
+      ],
+      "latency_ms": 3055,
+      "generated_at": "2026-05-22T03:39:45.633082+00:00"
+    },
+    {
+      "batch_id": 3,
+      "intent": "price",
+      "emotion": "friendly",
+      "cta": "buy_now",
+      "confidence": 0.9,
+      "text": "Dạ, phí ship ở TP.HCM là miễn phí cho đơn từ 300k trở lên, còn dưới 300k thì phí ship là 20.000đ ạ. Hôm nay trên livestream còn có ưu đãi tặng quà khi mua combo 2 sản phẩm trở lên nữa nha. Bạn hãy bấm vào giỏ hàng để xem chi tiết khuyến mãi và đặt hàng ngay nhé!",
+      "source_comments": [
+        "phí ship hcm bao nhiêu vậy ạ"
+      ],
+      "retrieved_docs": [
+        "faq",
+        "shipping",
+        "faq"
+      ],
+      "latency_ms": 2851,
+      "generated_at": "2026-05-22T03:39:48.484885+00:00"
+    },
+    {
+      "batch_id": 4,
+      "intent": "health",
+      "emotion": "helpful",
+      "cta": "engage",
+      "confidence": 0.9,
+      "text": "Dạ, sản phẩm Cocoon được làm từ nguyên liệu thiên nhiên, đã kiểm nghiệm da liễu nên rất phù hợp cho da nhạy cảm. Phụ nữ mang thai 5 tháng có thể sử dụng, nhưng nên tham khảo ý kiến bác sĩ để an toàn nhất nha. Sản phẩm không chứa gluten và dành cho người từ 12 tuổi trở lên, trẻ em 10 tuổi không nên dùng ạ. Nếu bạn có thắc mắc gì thêm, hãy comment số điện thoại hoặc inbox cho mình nha!",
+      "source_comments": [
+        "da mình nhạy cảm dùng được không shop ơi",
+        "bầu 5 tháng dùng được không ạ",
+        "sản phẩm có chứa gluten không shop ơi",
+        "trẻ em 10 tuổi dùng được không ạ"
+      ],
+      "retrieved_docs": [
+        "health",
+        "faq",
+        "faq"
+      ],
+      "latency_ms": 3830,
+      "generated_at": "2026-05-22T03:39:52.315714+00:00"
+    },
+    {
+      "batch_id": 5,
+      "intent": "health",
+      "emotion": "caring",
+      "cta": "engage",
+      "confidence": 0.9,
+      "text": "Dạ, sản phẩm của Cocoon hoàn toàn an toàn nha, vì chúng mình sử dụng nguyên liệu thiên nhiên, đã được kiểm nghiệm da liễu. Tuy nhiên, nếu bạn là phụ nữ mang thai thì nên tham khảo ý kiến bác sĩ trước khi dùng để đảm bảo an toàn nhất nhé. Nếu bạn có thêm thắc mắc nào khác, hãy comment số điện thoại để mình hỗ trợ thêm nha!",
+      "source_comments": [
+        "sản phẩm này an toàn không shop"
+      ],
+      "retrieved_docs": [
+        "health",
+        "faq",
+        "order"
+      ],
+      "latency_ms": 3054,
+      "generated_at": "2026-05-22T03:39:55.370217+00:00"
+    },
+    {
+      "batch_id": 6,
+      "intent": "promotion",
+      "emotion": "enthusiastic",
+      "cta": "engage",
+      "confidence": 0.9,
+      "text": "Dạ, trong livestream hôm nay, khi mua 2 hũ trở lên, quý khách sẽ được tặng quà kèm và áp dụng mã giảm giá luôn nha. Cocoon không có combo mua 2 tặng 1, nhưng mua 2 sẽ có nhiều ưu đãi hấp dẫn. Các bạn hãy nhanh tay bấm vào giỏ hàng để xem chi tiết và tận hưởng ưu đãi này nhé!",
+      "source_comments": [
+        "mua 2 hũ có giảm thêm không",
+        "có combo mua 2 tặng 1 không"
+      ],
+      "retrieved_docs": [
+        "pricing",
+        "faq",
+        "faq"
+      ],
+      "latency_ms": 2999,
+      "generated_at": "2026-05-22T03:39:58.370109+00:00"
+    },
+    {
+      "batch_id": 7,
+      "intent": "shipping",
+      "emotion": "friendly",
+      "cta": "buy_now",
+      "confidence": 0.9,
+      "text": "Dạ, Cocoon ship toàn quốc 63 tỉnh thành nha! Nếu bạn ở Hà Nội, đơn từ 300k sẽ được miễn phí ship và giao trong 2-3 ngày. Còn nếu bạn ở Sài Gòn, cũng có thể order bình thường và sẽ được miễn phí ship cho đơn từ 300k đấy ạ. Hãy nhanh tay đặt hàng để nhận ưu đãi tốt nhất nha!",
+      "source_comments": [
+        "có ship miền bắc không ạ",
+        "ship hà nội mất mấy ngày vậy",
+        "mình ở sài gòn order được không"
+      ],
+      "retrieved_docs": [
+        "faq",
+        "shipping",
+        "faq"
+      ],
+      "latency_ms": 3674,
+      "generated_at": "2026-05-22T03:40:02.044760+00:00"
+    },
+    {
+      "batch_id": 8,
+      "intent": "flavor",
+      "emotion": "helpful",
+      "cta": "engage",
+      "confidence": 0.9,
+      "text": "Dạ, nếu tóc bạn rụng nhiều, mình khuyên bạn nên dùng combo dầu gội bưởi và nước dưỡng tóc nha. Dầu gội sẽ làm sạch da đầu, còn nước dưỡng tóc sẽ giúp điều trị rụng tóc và nuôi dưỡng tóc. Còn với da dầu, bạn có thể thử tẩy da chết cà phê, nó phù hợp cho da thường đến dầu và giúp làm sạch sâu nữa ạ. Nếu cần thêm thông tin hay muốn đặt hàng, hãy comment SĐT nhé!",
+      "source_comments": [
+        "tóc mình rụng nhiều lắm dùng loại nào phù hợp ạ",
+        "da mình bị dầu nhiều dùng loại nào tốt ạ"
+      ],
+      "retrieved_docs": [
+        "faq",
+        "faq",
+        "faq"
+      ],
+      "latency_ms": 4460,
+      "generated_at": "2026-05-22T03:40:06.505790+00:00"
+    },
+    {
+      "batch_id": 9,
+      "intent": "shelf_life",
+      "emotion": "helpful",
+      "cta": "engage",
+      "confidence": 0.9,
+      "text": "Hạn sử dụng của sản phẩm Cocoon là 36 tháng kể từ ngày sản xuất, và sau khi mở nắp thì bạn nên dùng trong vòng 12 tháng nha. Để sản phẩm luôn hiệu quả, bạn nhớ bảo quản nơi khô ráo, thoáng mát và đậy kín nắp sau khi sử dụng. Nếu bạn đang tìm kiếm sản phẩm chăm sóc da và tóc an toàn, hãy inbox để mình tư vấn thêm nhé!",
+      "source_comments": [
+        "hạn sử dụng bao lâu vậy ạ"
+      ],
+      "retrieved_docs": [
+        "shelf_life",
+        "faq",
+        "product_info"
+      ],
+      "latency_ms": 3547,
+      "generated_at": "2026-05-22T03:40:10.053469+00:00"
+    },
+    {
+      "batch_id": 10,
+      "intent": "restock",
+      "emotion": "helpful",
+      "cta": "notify_me",
+      "confidence": 0.9,
+      "text": "Dạ hiện tại thì dầu gội bưởi không sulfate và nước dưỡng tóc tinh dầu bưởi đang hết hàng, nhưng shop sẽ restock sớm ạ. Bạn theo dõi livestream để biết thời gian cụ thể nha. Nếu bạn quan tâm, hãy comment SĐT hoặc inbox cho shop để được thông báo ngay khi có hàng nhé.",
+      "source_comments": [
+        "dầu gội có hết hàng không shop",
+        "bao giờ có hàng nước dưỡng tóc bưởi vậy shop"
+      ],
+      "retrieved_docs": [
+        "flavor",
+        "faq",
+        "pricing"
+      ],
+      "latency_ms": 3264,
+      "generated_at": "2026-05-22T03:40:13.318631+00:00"
+    }
+  ]
+}
