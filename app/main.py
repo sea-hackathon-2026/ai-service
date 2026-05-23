@@ -59,6 +59,7 @@ async def lifespan(app: FastAPI):
     output_path.mkdir(parents=True, exist_ok=True)
     (output_path / "videos").mkdir(exist_ok=True)
     (output_path / "audio").mkdir(exist_ok=True)
+    (output_path / "livestream").mkdir(exist_ok=True)
     logger.info("✅ Storage directories ready: %s", output_path)
 
     # Data directory for SQLite

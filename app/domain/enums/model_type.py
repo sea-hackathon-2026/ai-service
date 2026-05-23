@@ -6,5 +6,6 @@ from enum import Enum
 class ModelType(str, Enum):
     """Types of AI model pipelines available in the service."""
 
-    VIDEO_GEN = "video_gen"    # Video generation (text/image → video)
-    TTS = "tts"                # Text-to-Speech synthesis
+    VIDEO_GEN = "video_gen"  # Video generation (text/image to video)
+    LIVESTREAM_VIDEO = "livestream_video"  # Script/images to micro-scene video
+    TTS = "tts"  # Text-to-Speech synthesis

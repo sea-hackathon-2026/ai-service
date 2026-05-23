@@ -39,6 +39,9 @@ copy .env.example .env
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+For `/api/v1/video/livestream/jobs`, install `ffmpeg` on the host. Set
+`LIVESTREAM_ENABLE_WAV2LIP=true` only after Wav2Lip and its checkpoint exist.
+
 ### 3. Explore the API
 
 - **Swagger UI**: http://localhost:8000/docs
@@ -197,6 +200,8 @@ docker-compose up --build
 | GET | `/health` | Liveness probe |
 | GET | `/readiness` | Readiness probe (checks AI models) |
 | POST | `/api/v1/video/generate` | Generate video (batch) |
+| POST | `/api/v1/video/livestream/jobs` | Upload host/product images and create a micro-scene livestream video job |
+| GET | `/api/v1/video/livestream/jobs/{job_id}/outputs` | Get scene clips and final livestream video URL |
 | GET | `/api/v1/video/config` | Get supported video config |
 | POST | `/api/v1/tts/synthesize` | Synthesize speech (batch) |
 | GET | `/api/v1/tts/voices` | List available voices |

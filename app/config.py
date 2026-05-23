@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -57,6 +57,18 @@ class Settings(BaseSettings):
     video_model_device: str = "cuda"
     tts_model_id: str = "tts_models/multilingual/multi-dataset/xtts_v2"
     tts_model_device: str = "cuda"
+
+    # â”€â”€ Livestream micro-scene pipeline â”€â”€
+    livestream_output_width: int = 720
+    livestream_output_height: int = 1280
+    livestream_fps: int = 25
+    livestream_tts_provider: str = "auto"  # "auto" | "edge" | "silent"
+    livestream_tts_voice: str = "vi-VN-HoaiMyNeural"
+    livestream_enable_wav2lip: bool = False
+    wav2lip_dir: str = "/content/Wav2Lip"
+    wav2lip_checkpoint: str = "/content/Wav2Lip/checkpoints/Wav2Lip-SD-GAN.pt"
+    wav2lip_resize_factor: int = 2
+    wav2lip_pads: Tuple[int, int, int, int] = (0, 20, 0, 0)
 
     # ── Storage ──
     storage_type: str = "local"  # "local" | "s3"

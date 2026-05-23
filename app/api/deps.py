@@ -20,7 +20,11 @@ from app.infrastructure.persistence.repositories.job_repository import (
 )
 from app.infrastructure.ai_models.video_generator import MockVideoGenerator
 from app.infrastructure.ai_models.tts_engine import MockTTSEngine
+from app.infrastructure.ai_models.micro_scene_pipeline import MicroScenePipelineConfig
 from app.infrastructure.storage.local_storage import LocalStorageService
+from app.application.use_cases.generate_livestream_video import (
+    GenerateLivestreamVideoUseCase,
+)
 from app.application.use_cases.generate_video import GenerateVideoUseCase
 from app.application.use_cases.text_to_speech import TextToSpeechUseCase
 from app.application.use_cases.get_job_status import GetJobStatusUseCase
@@ -113,6 +117,30 @@ def get_generate_video_use_case(
     return GenerateVideoUseCase(video_service, job_repo, storage)
 
 
+def get_livestream_video_use_case(
+    job_repo: JobRepoDep,
+    settings: SettingsDep,
+) -> GenerateLivestreamVideoUseCase:
+    """Assemble the micro-scene livestream video use case."""
+    pipeline_config = MicroScenePipelineConfig(
+        output_width=settings.livestream_output_width,
+        output_height=settings.livestream_output_height,
+        fps=settings.livestream_fps,
+        tts_provider=settings.livestream_tts_provider,
+        tts_voice=settings.livestream_tts_voice,
+        enable_wav2lip=settings.livestream_enable_wav2lip,
+        wav2lip_dir=settings.wav2lip_dir,
+        wav2lip_checkpoint=settings.wav2lip_checkpoint,
+        wav2lip_resize_factor=settings.wav2lip_resize_factor,
+        wav2lip_pads=settings.wav2lip_pads,
+    )
+    return GenerateLivestreamVideoUseCase(
+        job_repository=job_repo,
+        pipeline_config=pipeline_config,
+        public_url_prefix="/static/outputs",
+    )
+
+
 def get_tts_use_case(
     tts_service: TTSServiceDep,
     job_repo: JobRepoDep,
@@ -130,5 +158,9 @@ def get_job_status_use_case(
 
 
 VideoUseCaseDep = Annotated[GenerateVideoUseCase, Depends(get_generate_video_use_case)]
+LivestreamVideoUseCaseDep = Annotated[
+    GenerateLivestreamVideoUseCase,
+    Depends(get_livestream_video_use_case),
+]
 TTSUseCaseDep = Annotated[TextToSpeechUseCase, Depends(get_tts_use_case)]
 JobStatusUseCaseDep = Annotated[GetJobStatusUseCase, Depends(get_job_status_use_case)]

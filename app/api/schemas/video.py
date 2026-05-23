@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -43,3 +43,48 @@ class VideoConfigResponse(BaseModel):
     """Supported video generation configuration options."""
 
     config: Dict[str, Any]
+
+
+class LivestreamJobResponse(BaseModel):
+    """Response returned after submitting a micro-scene livestream job."""
+
+    job_id: str
+    status: str
+    status_url: str
+    outputs_url: str
+
+
+class LivestreamSceneOutput(BaseModel):
+    """Metadata for one rendered livestream scene clip."""
+
+    scene_id: str
+    order: int
+    scene_type: str
+    text: str
+    visual_goal: str
+    emotion: str
+    camera: str
+    host_action: str
+    product_action: str
+    duration_target_sec: float
+    image_prompt: str = ""
+    negative_prompt: str
+    motion_prompt: str
+    overlay_text: Optional[str] = None
+    use_lipsync: bool = True
+    use_product_overlay: bool = False
+    video_path: Optional[str] = None
+    url: Optional[str] = None
+
+
+class LivestreamOutputsResponse(BaseModel):
+    """Generated scene clips and final video for a livestream job."""
+
+    job_id: str
+    status: str
+    progress: float
+    current_step: str
+    videos: List[LivestreamSceneOutput] = Field(default_factory=list)
+    scene_plan_url: Optional[str] = None
+    final_video_url: Optional[str] = None
+    error_message: Optional[str] = None
