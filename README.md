@@ -208,3 +208,9 @@ docker-compose up --build
 | GET | `/api/v1/jobs/{job_id}` | Get job status |
 | WS | `/ws/video/generate` | Video generation (streaming) |
 | WS | `/ws/tts/stream` | TTS synthesis (streaming) |
+
+TEST-WRAP-PIPELINE
+
+python tests/wraptest.py                          # Full pipeline
+python tests/wraptest.py --step generate-script   # Chỉ tạo script
+python tests/wraptest.py --provider local         # Dùng fallback rule-based

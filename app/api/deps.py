@@ -121,7 +121,27 @@ def get_livestream_video_use_case(
     job_repo: JobRepoDep,
     settings: SettingsDep,
 ) -> GenerateLivestreamVideoUseCase:
-    """Assemble the micro-scene livestream video use case."""
+    """Assemble the micro-scene livestream video use case.
+
+    When ``GEMINI_API_KEY`` is set and ``GENAI_PREFER_API`` is True,
+    a :class:`GeminiGenAIClient` is injected so the pipeline tries the
+    Google GenAI path before falling back to local FFmpeg.
+    """
+    # ── Optionally create GenAI client ──
+    genai_client = None
+    if settings.gemini_api_key and settings.genai_prefer_api:
+        try:
+            from app.infrastructure.ai_models.gemini_genai_client import (
+                GeminiGenAIClient,
+            )
+            genai_client = GeminiGenAIClient(
+                api_key=settings.gemini_api_key,
+                imagen_model=settings.genai_imagen_model,
+                veo_model=settings.genai_veo_model,
+            )
+        except ImportError:
+            pass  # google-genai not installed; stay local
+
     pipeline_config = MicroScenePipelineConfig(
         output_width=settings.livestream_output_width,
         output_height=settings.livestream_output_height,
@@ -133,6 +153,11 @@ def get_livestream_video_use_case(
         wav2lip_checkpoint=settings.wav2lip_checkpoint,
         wav2lip_resize_factor=settings.wav2lip_resize_factor,
         wav2lip_pads=settings.wav2lip_pads,
+        genai_client=genai_client,
+        genai_aspect_ratio=settings.genai_aspect_ratio,
+        genai_use_imagen=settings.genai_use_imagen,
+        genai_skip_wav2lip=settings.genai_skip_wav2lip,
+        genai_enhance_prompt=settings.genai_enhance_prompt,
     )
     return GenerateLivestreamVideoUseCase(
         job_repository=job_repo,

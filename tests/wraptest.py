@@ -30,6 +30,7 @@ import re
 import shutil
 import sys
 import time
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -86,13 +87,22 @@ class WrapTestConfig:
         # ── VEO Browser Automation ──
         self.gemini_veo_url: str = os.getenv(
             "GEMINI_VEO_URL", "https://gemini.google.com/"
+        ).strip() or "https://gemini.google.com/"
+        self.gemini_video_tool_label: str = os.getenv(
+            "GEMINI_VIDEO_TOOL_LABEL", "Tạo video"
         )
+        self.gemini_aspect_ratio: str = os.getenv("GEMINI_ASPECT_RATIO", "9:16")
+        self.gemini_aspect_label: str = os.getenv(
+            "GEMINI_ASPECT_LABEL", "Dọc (9:16)"
+        )
+        self.chrome_cdp_url: str = os.getenv("CHROME_CDP_URL", "").strip()
         self.chrome_user_data_dir: str = os.getenv("CHROME_USER_DATA_DIR", "")
         self.chrome_executable_path: str = os.getenv("CHROME_EXECUTABLE_PATH", "")
         self.veo_download_dir: Path = self._resolve(
             os.getenv("VEO_DOWNLOAD_DIR", "./data/outputs/veo_downloads")
         )
         self.veo_timeout_sec: int = int(os.getenv("VEO_TIMEOUT_SEC", "600"))
+        self.veo_scene_limit: int = int(os.getenv("VEO_SCENE_LIMIT", "0"))
         self.screenshot_dir: Path = self._resolve(
             os.getenv("VEO_SCREENSHOT_DIR", "./data/outputs/screenshots")
         )
@@ -161,6 +171,9 @@ class WrapTestConfig:
         return (
             f"=== WrapTest Config ===\n"
             f"  VEO URL:        {self.gemini_veo_url}\n"
+            f"  Chrome CDP:     {self.chrome_cdp_url or '(disabled)'}\n"
+            f"  Video tool:     {self.gemini_video_tool_label}\n"
+            f"  Aspect ratio:   {self.gemini_aspect_label}\n"
             f"  LLM Provider:   {self.llm_provider}\n"
             f"  LLM Model:      {self.llm_model_name}\n"
             f"  Input:          {self.input_path}\n"
@@ -168,6 +181,7 @@ class WrapTestConfig:
             f"  Downloads:      {self.veo_download_dir}\n"
             f"  Screenshots:    {self.screenshot_dir}\n"
             f"  VEO Timeout:    {self.veo_timeout_sec}s\n"
+            f"  Scene limit:    {self.veo_scene_limit or 'all'}\n"
             f"========================"
         )
 
@@ -792,6 +806,635 @@ def _find_element(page, selectors: list[str], timeout: int = 5000,
     return None
 
 
+def _strip_accents(text: str) -> str:
+    """Normalize UI text so Vietnamese/English selectors can share one path."""
+    normalized = unicodedata.normalize("NFD", text or "")
+    stripped = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return stripped.replace("\u0111", "d").replace("\u0110", "D").lower()
+
+
+def _visible_text_matches(text: str, needles: list[str]) -> bool:
+    haystack = _strip_accents(text)
+    return any(_strip_accents(needle) in haystack for needle in needles if needle)
+
+
+def _click_visible_text(
+    page,
+    needles: list[str],
+    *,
+    selectors: str = "button,[role='button'],a,span,div",
+    timeout: int = 5000,
+    label: str = "visible text",
+) -> bool:
+    """Click the first visible element whose text/aria-label matches a needle."""
+    deadline = time.time() + timeout / 1000
+    while time.time() < deadline:
+        handle = page.evaluate_handle(
+            """({selectors, needles}) => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .toLowerCase();
+                const wanted = needles.map(strip).filter(Boolean);
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                for (const el of document.querySelectorAll(selectors)) {
+                    if (!isVisible(el)) continue;
+                    const text = strip(`${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`);
+                    if (wanted.some((needle) => text.includes(needle))) {
+                        return el.closest("button,[role='button'],a") || el;
+                    }
+                }
+                return null;
+            }""",
+            {"selectors": selectors, "needles": needles},
+        )
+        element = handle.as_element()
+        if element:
+            try:
+                element.scroll_into_view_if_needed(timeout=1000)
+            except Exception:
+                pass
+            try:
+                element.click(timeout=2000)
+            except Exception:
+                element.click(force=True, timeout=2000)
+            logger.debug("  Clicked %s via visible text: %s", label, needles)
+            return True
+        time.sleep(0.25)
+    return False
+
+
+def _click_exact_visible_text(
+    page,
+    labels: list[str],
+    *,
+    selectors: str = "button,[role='button'],[role='menuitem'],a,[role='link'],span,div",
+    timeout: int = 5000,
+    label: str = "exact visible text",
+) -> bool:
+    """Click a visible element whose normalized text exactly equals one label."""
+    deadline = time.time() + timeout / 1000
+    while time.time() < deadline:
+        handle = page.evaluate_handle(
+            """({selectors, labels}) => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .replace(/\\s+/g, " ")
+                    .trim()
+                    .toLowerCase();
+                const wanted = labels.map(strip).filter(Boolean);
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                for (const el of document.querySelectorAll(selectors)) {
+                    if (!isVisible(el)) continue;
+                    const raw = `${el.innerText || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`;
+                    const text = strip(raw);
+                    if (wanted.includes(text)) {
+                        return el.closest("button,[role='button'],[role='menuitem'],a,[role='link']") || el;
+                    }
+                }
+                return null;
+            }""",
+            {"selectors": selectors, "labels": labels},
+        )
+        element = handle.as_element()
+        if element:
+            try:
+                element.scroll_into_view_if_needed(timeout=1000)
+            except Exception:
+                pass
+            try:
+                element.click(timeout=2000)
+            except Exception:
+                element.click(force=True, timeout=2000)
+            logger.debug("  Clicked %s via exact text: %s", label, labels)
+            return True
+        time.sleep(0.25)
+    return False
+
+
+def _gemini_plus_menu_open(page) -> bool:
+    """Detect Gemini's plus/upload menu."""
+    try:
+        return bool(page.evaluate(
+            """() => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .toLowerCase();
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                const roots = Array.from(document.querySelectorAll(
+                    "[role='menu'],[role='listbox'],.cdk-overlay-pane,.mat-mdc-menu-panel"
+                )).filter(isVisible);
+                return roots.some((root) => {
+                    const text = strip(root.innerText || root.textContent || "");
+                    return text.includes("upload")
+                        || text.includes("tai tep")
+                        || text.includes("drive")
+                        || text.includes("create video")
+                        || text.includes("tao video");
+                });
+            }"""
+        ))
+    except Exception:
+        return False
+
+
+def _click_video_composer_upload_slot(page) -> bool:
+    """Click the wide image-upload button in Gemini's video composer."""
+    try:
+        points = page.evaluate(
+            """() => {
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                const textOf = (el) => `${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`.toLowerCase();
+
+                const aspect = Array.from(document.querySelectorAll("button,[role='button'],div"))
+                    .filter(isVisible)
+                    .map((el) => ({el, rect: el.getBoundingClientRect(), text: textOf(el)}))
+                    .filter((item) => item.text.includes("landscape") || item.text.includes("portrait") || item.text.includes("9:16") || item.text.includes("16:9"))
+                    .sort((a, b) => b.rect.top - a.rect.top)[0];
+                if (aspect) {
+                    const y = aspect.rect.top + aspect.rect.height / 2;
+                    return [
+                        {x: aspect.rect.left - 170, y, source: "aspect-left"},
+                        {x: aspect.rect.left - 70, y, source: "aspect-left-near"}
+                    ];
+                }
+
+                const selectors = [
+                    'rich-textarea div[contenteditable="true"]',
+                    'div[contenteditable="true"][role="textbox"]',
+                    'div[contenteditable="true"][aria-label]',
+                    '.ql-editor[contenteditable="true"]',
+                    '.ProseMirror[contenteditable="true"]',
+                    'div[contenteditable="true"]',
+                    'textarea'
+                ];
+                const input = selectors
+                    .flatMap((selector) => Array.from(document.querySelectorAll(selector)))
+                    .filter(isVisible)
+                    .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+                    .pop();
+                if (!input) return [];
+                let container = input;
+                for (let i = 0; i < 6 && container.parentElement; i++) {
+                    const rect = container.getBoundingClientRect();
+                    if (rect.width > 450 && rect.height > 90) break;
+                    container = container.parentElement;
+                }
+                const rect = container.getBoundingClientRect();
+                return [
+                    {x: rect.left + rect.width * 0.25, y: rect.bottom - 28, source: "container-slot"},
+                    {x: rect.left + rect.width * 0.20, y: rect.bottom - 28, source: "container-slot-left"}
+                ];
+            }"""
+        )
+        for point in points:
+            page.mouse.click(point["x"], point["y"])
+            logger.debug("  Clicked video composer upload slot via %s", point.get("source"))
+            time.sleep(0.8)
+            return True
+        return False
+    except Exception as exc:
+        logger.debug("  Could not click video composer upload slot: %s", exc)
+        return False
+
+
+def _click_video_aspect_dropdown(page) -> bool:
+    """Click the aspect-ratio dropdown in the video composer bottom row."""
+    try:
+        point = page.evaluate(
+            """() => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .toLowerCase();
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                const makeCandidates = (selector, priority) => Array.from(document.querySelectorAll(selector))
+                    .filter(isVisible)
+                    .map((el) => {
+                        const rect = el.getBoundingClientRect();
+                        const text = strip(`${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`);
+                        return {el, rect, text, priority};
+                    })
+                    .filter((item) => item.rect.top > window.innerHeight * 0.55)
+                    .filter((item) => item.rect.width >= 70 && item.rect.width <= 520)
+                    .filter((item) => item.rect.height >= 24 && item.rect.height <= 90)
+                    .filter((item) =>
+                        item.text.includes("landscape") ||
+                        item.text.includes("portrait") ||
+                        item.text.includes("ngang") ||
+                        item.text.includes("doc") ||
+                        item.text.includes("16:9") ||
+                        item.text.includes("9:16")
+                    );
+                const candidates = [
+                    ...makeCandidates("button,[role='button'],[aria-haspopup]", 1000),
+                    ...makeCandidates("div,span", 0),
+                ].sort((a, b) => {
+                    const score = (item) =>
+                        item.priority +
+                        (item.rect.left / Math.max(window.innerWidth, 1)) * 100 +
+                        (item.rect.top / Math.max(window.innerHeight, 1)) * 50 -
+                        Math.abs(item.text.length - 18);
+                    return score(b) - score(a);
+                });
+                const chosen = candidates[0];
+                if (!chosen) return null;
+                return {
+                    x: chosen.rect.left + chosen.rect.width / 2,
+                    y: chosen.rect.top + chosen.rect.height / 2,
+                    text: chosen.text
+                };
+            }"""
+        )
+        if not point:
+            return False
+        page.mouse.click(point["x"], point["y"])
+        logger.debug("  Clicked aspect dropdown candidate: %s", point.get("text"))
+        time.sleep(1)
+        return True
+    except Exception as exc:
+        logger.debug("  Could not click video aspect dropdown: %s", exc)
+        return False
+
+
+def _click_video_aspect_option(page, labels: list[str]) -> bool:
+    """Click a portrait/9:16 option in the open aspect-ratio menu."""
+    try:
+        point = page.evaluate(
+            """({labels}) => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .replace(/\\s+/g, " ")
+                    .trim()
+                    .toLowerCase();
+                const wanted = labels.map(strip).filter(Boolean);
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                const optionSelectors = [
+                    "[role='option']",
+                    "[role='menuitem']",
+                    ".cdk-overlay-pane button",
+                    ".cdk-overlay-pane [role='button']",
+                    ".cdk-overlay-pane *",
+                    ".mat-mdc-menu-panel *",
+                    "button",
+                    "[role='button']"
+                ];
+                const seen = new Set();
+                const candidates = [];
+                for (const selector of optionSelectors) {
+                    for (const el of document.querySelectorAll(selector)) {
+                        if (seen.has(el) || !isVisible(el)) continue;
+                        seen.add(el);
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width < 20 || rect.height < 18) continue;
+                        const text = strip(`${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`);
+                        if (!text) continue;
+                        const isPortrait =
+                            text.includes("9:16") ||
+                            text.includes("portrait") ||
+                            text.includes("doc");
+                        const labelMatch = wanted.some((needle) => text === needle || text.includes(needle));
+                        if (!isPortrait && !labelMatch) continue;
+                        const inOverlay = !!el.closest(".cdk-overlay-pane,.mat-mdc-menu-panel,[role='listbox'],[role='menu']");
+                        candidates.push({el, rect, text, inOverlay});
+                    }
+                }
+                candidates.sort((a, b) => {
+                    const score = (item) =>
+                        (item.inOverlay ? 1000 : 0) +
+                        (item.text.includes("9:16") ? 200 : 0) +
+                        (item.text.includes("portrait") || item.text.includes("doc") ? 100 : 0) -
+                        Math.abs(item.text.length - 16);
+                    return score(b) - score(a);
+                });
+                const chosen = candidates[0];
+                if (!chosen) return null;
+                const target = chosen.el.closest("button,[role='button'],[role='option'],[role='menuitem']") || chosen.el;
+                const rect = target.getBoundingClientRect();
+                return {
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2,
+                    text: chosen.text
+                };
+            }""",
+            {"labels": labels},
+        )
+        if not point:
+            return False
+        page.mouse.click(point["x"], point["y"])
+        logger.debug("  Clicked vertical aspect option: %s", point.get("text"))
+        time.sleep(1)
+        return True
+    except Exception as exc:
+        logger.debug("  Could not click vertical aspect option: %s", exc)
+        return False
+
+
+def _find_visible_element_by_text(
+    page,
+    needles: list[str],
+    *,
+    selectors: str = "button,[role='button'],span,div",
+):
+    """Return first visible element matching text/aria-label, or None."""
+    handle = page.evaluate_handle(
+        """({selectors, needles}) => {
+            const strip = (text) => (text || "")
+                .normalize("NFD")
+                .replace(/[\\u0300-\\u036f]/g, "")
+                .replace(/đ/g, "d")
+                .replace(/Đ/g, "D")
+                .toLowerCase();
+            const wanted = needles.map(strip).filter(Boolean);
+            const isVisible = (el) => {
+                const rect = el.getBoundingClientRect();
+                const style = window.getComputedStyle(el);
+                return rect.width > 0 && rect.height > 0
+                    && style.visibility !== "hidden"
+                    && style.display !== "none";
+            };
+            for (const el of document.querySelectorAll(selectors)) {
+                if (!isVisible(el)) continue;
+                const text = strip(`${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`);
+                if (wanted.some((needle) => text.includes(needle))) return el;
+            }
+            return null;
+        }""",
+        {"selectors": selectors, "needles": needles},
+    )
+    return handle.as_element()
+
+
+def _click_plus_near_prompt_box(page) -> bool:
+    """Open the plus/attachment menu placed at the left of Gemini's prompt box."""
+    try:
+        target = page.evaluate(
+            """() => {
+                const selectors = [
+                    'rich-textarea div[contenteditable="true"]',
+                    'div[contenteditable="true"][role="textbox"]',
+                    'div[contenteditable="true"][aria-label]',
+                    '.ql-editor[contenteditable="true"]',
+                    '.ProseMirror[contenteditable="true"]',
+                    'div[contenteditable="true"]',
+                    'textarea'
+                ];
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                const input = selectors
+                    .flatMap((selector) => Array.from(document.querySelectorAll(selector)))
+                    .filter(isVisible)
+                    .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+                    .pop();
+                if (!input) return null;
+
+                const inputRect = input.getBoundingClientRect();
+                const centerY = inputRect.top + inputRect.height / 2;
+                const buttons = Array.from(document.querySelectorAll("button,[role='button']"))
+                    .filter(isVisible)
+                    .map((el) => {
+                        const rect = el.getBoundingClientRect();
+                        const text = `${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`.toLowerCase();
+                        const cx = rect.left + rect.width / 2;
+                        const cy = rect.top + rect.height / 2;
+                        return {el, rect, text, cx, cy};
+                    })
+                    .filter((item) => Math.abs(item.cy - centerY) < 70)
+                    .filter((item) => item.cx < inputRect.left + 120)
+                    .sort((a, b) => Math.abs(a.cy - centerY) - Math.abs(b.cy - centerY));
+
+                const labelMatch = buttons.find((item) =>
+                    item.text.includes("add") ||
+                    item.text.includes("plus") ||
+                    item.text.includes("attach") ||
+                    item.text.includes("upload") ||
+                    item.text.includes("them") ||
+                    item.text.includes("tai")
+                );
+                const points = [];
+                const chosen = labelMatch || buttons[0];
+                if (chosen) points.push({x: chosen.cx, y: chosen.cy, source: "button"});
+                points.push({x: Math.max(10, inputRect.left - 24), y: centerY, source: "left-minus"});
+                points.push({x: inputRect.left + 30, y: centerY, source: "left-plus"});
+                points.push({x: inputRect.left + 45, y: centerY, source: "left-plus-wide"});
+                return points;
+            }"""
+        )
+        if not target:
+            return False
+        for point in target:
+            page.mouse.click(point["x"], point["y"])
+            logger.debug("  Clicked Gemini plus near prompt box via %s", point.get("source"))
+            time.sleep(0.8)
+            if _gemini_plus_menu_open(page):
+                return True
+        return _gemini_plus_menu_open(page)
+    except Exception as exc:
+        logger.debug("  Could not click plus near prompt box: %s", exc)
+        return False
+
+
+def _gemini_text_input_handle(page):
+    """Find Gemini's prompt textbox, preferring the bottom-most visible editor."""
+    selectors = [
+        'rich-textarea div[contenteditable="true"]',
+        'div[contenteditable="true"][role="textbox"]',
+        'div[contenteditable="true"][aria-label]',
+        '.ql-editor[contenteditable="true"]',
+        '.ProseMirror[contenteditable="true"]',
+        'div[contenteditable="true"]',
+        'textarea',
+    ]
+    for selector in selectors:
+        try:
+            loc = page.locator(selector)
+            count = loc.count()
+            if count <= 0:
+                continue
+            candidates = []
+            for idx in range(count):
+                item = loc.nth(idx)
+                try:
+                    if item.is_visible(timeout=500):
+                        box = item.bounding_box(timeout=500)
+                        if box:
+                            candidates.append((box["y"], item.element_handle(timeout=500)))
+                except Exception:
+                    continue
+            if candidates:
+                return sorted(candidates, key=lambda item: item[0])[-1][1]
+        except Exception:
+            continue
+
+    handle = page.evaluate_handle(
+        """() => {
+            const selectors = [
+                'rich-textarea div[contenteditable="true"]',
+                'div[contenteditable="true"][role="textbox"]',
+                'div[contenteditable="true"][aria-label]',
+                '.ql-editor[contenteditable="true"]',
+                '.ProseMirror[contenteditable="true"]',
+                'div[contenteditable="true"]',
+                'textarea'
+            ];
+            const isVisible = (el) => {
+                const rect = el.getBoundingClientRect();
+                const style = window.getComputedStyle(el);
+                return rect.width > 0 && rect.height > 0
+                    && style.visibility !== "hidden"
+                    && style.display !== "none";
+            };
+            return selectors
+                .flatMap((selector) => Array.from(document.querySelectorAll(selector)))
+                .filter(isVisible)
+                .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+                .pop() || null;
+        }"""
+    )
+    return handle.as_element()
+
+
+def _wait_for_gemini_textbox(page, timeout: int = 30000):
+    """Wait for the Gemini prompt textbox and return its element handle."""
+    deadline = time.time() + timeout / 1000
+    while time.time() < deadline:
+        textbox = _gemini_text_input_handle(page)
+        if textbox:
+            return textbox
+        time.sleep(0.5)
+    return None
+
+
+def _configure_download_behavior(context, download_dir: Path) -> None:
+    """Best-effort download behavior for persistent or CDP Chrome contexts."""
+    try:
+        context.set_default_timeout(30000)
+        context.set_default_navigation_timeout(60000)
+    except Exception:
+        pass
+
+    try:
+        page = context.pages[0] if context.pages else context.new_page()
+        cdp = context.new_cdp_session(page)
+        cdp.send(
+            "Browser.setDownloadBehavior",
+            {"behavior": "allow", "downloadPath": str(download_dir)},
+        )
+    except Exception as exc:
+        logger.debug("Could not set Chrome download behavior: %s", exc)
+
+
+def _connect_or_launch_chrome(p, config: WrapTestConfig):
+    """Use an existing logged-in Chrome via CDP when configured, otherwise launch."""
+    if config.chrome_cdp_url:
+        logger.info("Connecting to existing Chrome via CDP: %s", config.chrome_cdp_url)
+        browser = p.chromium.connect_over_cdp(config.chrome_cdp_url)
+        context = browser.contexts[0] if browser.contexts else browser.new_context(
+            accept_downloads=True,
+            viewport={"width": 1920, "height": 1080},
+            locale="vi-VN",
+            timezone_id="Asia/Ho_Chi_Minh",
+        )
+        _configure_download_behavior(context, config.veo_download_dir)
+        page = context.pages[0] if context.pages else context.new_page()
+        return browser, context, page
+
+    launch_args = [
+        "--disable-blink-features=AutomationControlled",
+        "--disable-features=IsolateOrigins,site-per-process",
+        "--disable-infobars",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-component-extensions-with-background-pages",
+        "--disable-default-apps",
+        "--disable-popup-blocking",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-dev-shm-usage",
+    ]
+
+    user_data_dir = (
+        config.chrome_user_data_dir
+        if config.chrome_user_data_dir
+        else str(PROJECT_ROOT / ".chrome_profile")
+    )
+
+    context = p.chromium.launch_persistent_context(
+        user_data_dir=user_data_dir,
+        headless=False,
+        args=launch_args,
+        channel="chrome" if not config.chrome_executable_path else None,
+        executable_path=config.chrome_executable_path or None,
+        accept_downloads=True,
+        viewport={"width": 1920, "height": 1080},
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/130.0.0.0 Safari/537.36"
+        ),
+        locale="vi-VN",
+        timezone_id="Asia/Ho_Chi_Minh",
+    )
+    _configure_download_behavior(context, config.veo_download_dir)
+    page = context.pages[0] if context.pages else context.new_page()
+    return None, context, page
+
+
 def run_veo_browser_automation(config: WrapTestConfig) -> list[dict]:
     """Run Playwright to automate video generation on gemini.google.com.
 
@@ -825,12 +1468,34 @@ def run_veo_browser_automation(config: WrapTestConfig) -> list[dict]:
 
     queue = json.loads(config.prompt_queue_path.read_text(encoding="utf-8"))
     scenes = queue.get("scenes", [])
+    if config.veo_scene_limit > 0:
+        scenes = scenes[:config.veo_scene_limit]
+        logger.info("VEO_SCENE_LIMIT active: processing first %d scene(s)", len(scenes))
     input_data = config.load_input()
 
     model_image = input_data.get("model_image_resolved", "")
     product_image = input_data.get("product_image_resolved", "")
 
     results = []
+
+    if config.chrome_cdp_url:
+        with sync_playwright() as p:
+            browser, context, page = _connect_or_launch_chrome(p, config)
+            context.on("page", lambda pg: pg.on("load", lambda: _inject_stealth(pg)))
+            try:
+                _run_veo_page_session(
+                    page=page,
+                    context=context,
+                    config=config,
+                    scenes=scenes,
+                    model_image=model_image,
+                    product_image=product_image,
+                    results=results,
+                )
+            finally:
+                # For CDP we are attached to the user's real Chrome; leave it open.
+                pass
+        return results
 
     with sync_playwright() as p:
         # ── Heavy stealth: bypass Gemini automation detection ──
@@ -913,6 +1578,10 @@ def run_veo_browser_automation(config: WrapTestConfig) -> list[dict]:
         # ── Wait for Gemini UI to fully load ──
         logger.info("Waiting for Gemini chat UI to load...")
         _wait_for_gemini_ready(page)
+        try:
+            _prepare_gemini_video_mode(page, config, "initial")
+        except Exception as exc:
+            logger.warning("Initial video-mode preparation failed, will retry per scene: %s", exc)
         _take_screenshot(page, config, "03_gemini_ready")
         logger.info("Gemini ready. Processing %d scenes...", len(scenes))
 
@@ -970,30 +1639,358 @@ def run_veo_browser_automation(config: WrapTestConfig) -> list[dict]:
     return results
 
 
+def _run_veo_page_session(
+    *,
+    page,
+    context,
+    config: WrapTestConfig,
+    scenes: list[dict],
+    model_image: str,
+    product_image: str,
+    results: list[dict],
+) -> None:
+    """Run the Gemini flow on an already-open browser page/context."""
+    logger.info("Navigating to Gemini...")
+    page.goto(config.gemini_veo_url, wait_until="domcontentloaded", timeout=60000)
+    _inject_stealth(page)
+    time.sleep(4)
+    _take_screenshot(page, config, "01_initial_page")
+
+    current_url = page.url
+    if "accounts.google.com" in current_url or "signin" in current_url.lower():
+        logger.warning(
+            "Google login required. Log in manually in the browser window; "
+            "the script will wait up to 180 seconds."
+        )
+        try:
+            page.wait_for_url(lambda url: "gemini.google.com" in url, timeout=180000)
+            time.sleep(5)
+            _inject_stealth(page)
+            _take_screenshot(page, config, "02_after_login")
+        except Exception:
+            logger.error("Login timeout. Please login and re-run.")
+            return
+
+    logger.info("Waiting for Gemini chat UI to load...")
+    _wait_for_gemini_ready(page)
+    try:
+        _prepare_gemini_video_mode(page, config, "initial")
+    except Exception as exc:
+        logger.warning("Initial video-mode preparation failed, will retry per scene: %s", exc)
+    _take_screenshot(page, config, "03_gemini_ready")
+    logger.info("Gemini ready. Processing %d scenes...", len(scenes))
+
+    for i, scene in enumerate(scenes):
+        scene_id = scene["scene_id"]
+        veo_prompt = scene["veo_prompt"]
+
+        logger.info(
+            "\n--- Scene %d/%d: %s (%s) ---",
+            i + 1, len(scenes), scene_id, scene.get("scene_type", "?")
+        )
+
+        try:
+            video_path = _process_gemini_scene(
+                page=page,
+                config=config,
+                scene_id=scene_id,
+                scene_index=i,
+                veo_prompt=veo_prompt,
+                model_image=model_image,
+                product_image=product_image,
+            )
+            results.append({
+                "scene_id": scene_id,
+                "video_path": video_path,
+                "status": "success",
+            })
+            logger.info("Scene %s completed: %s", scene_id, video_path)
+        except Exception as exc:
+            logger.error("Scene %s failed: %s", scene_id, exc)
+            _take_screenshot(page, config, f"error_{scene_id}")
+            results.append({
+                "scene_id": scene_id,
+                "video_path": None,
+                "status": f"error: {exc}",
+            })
+            prompt_fallback_path = config.output_dir / f"{scene_id}_prompt.txt"
+            prompt_fallback_path.write_text(veo_prompt, encoding="utf-8")
+            logger.info("Prompt saved to: %s", prompt_fallback_path)
+            try:
+                import pyperclip
+                pyperclip.copy(veo_prompt)
+                logger.info("Prompt also copied to clipboard for manual paste.")
+            except ImportError:
+                pass
+
+
 def _wait_for_gemini_ready(page, timeout: int = 30000) -> None:
     """Wait until Gemini chat UI is interactable."""
-    # Gemini's input area selectors (try multiple patterns)
-    input_selectors = [
-        '.ql-editor',                                  # Quill editor
-        'div[contenteditable="true"]',                 # Generic contenteditable
-        'rich-textarea div[contenteditable="true"]',   # Gemini rich textarea
-        '.input-area-container [contenteditable]',     # Input area
-        'div[role="textbox"]',                         # ARIA textbox
-        '.ProseMirror',                                # ProseMirror editor
-        'textarea[aria-label]',                        # Fallback textarea
+    textbox = _wait_for_gemini_textbox(page, timeout=timeout)
+    if textbox:
+        logger.debug("Gemini ready: found prompt textbox")
+        return
+
+    logger.warning("Could not detect Gemini input area, waiting 10s...")
+    time.sleep(10)
+
+
+def _prepare_gemini_video_mode(page, config: WrapTestConfig, prefix: str) -> None:
+    """Switch Gemini web to video mode and vertical 9:16 before submitting."""
+    _wait_for_gemini_ready(page)
+    _select_gemini_video_tool(page, config, prefix)
+    _dismiss_gemini_video_onboarding(page, config, prefix)
+    _select_gemini_vertical_aspect(page, config, prefix)
+
+
+def _dismiss_gemini_video_onboarding(page, config: WrapTestConfig, prefix: str) -> None:
+    """Dismiss Gemini video onboarding modal if it appears."""
+    labels = [
+        "Try it",
+        "Get started",
+        "Start",
+        "Continue",
+        "Got it",
+        "OK",
+        "Dùng thử",
+        "Bắt đầu",
+        "Tiếp tục",
+        "Đã hiểu",
+    ]
+    try:
+        if _click_exact_visible_text(
+            page,
+            labels,
+            selectors="button,[role='button']",
+            timeout=2000,
+            label="video onboarding dismiss",
+        ):
+            time.sleep(2)
+            _take_screenshot(page, config, f"{prefix}_video_onboarding_dismissed")
+            logger.info("  Dismissed Gemini video onboarding modal")
+    except Exception as exc:
+        logger.debug("  No Gemini video onboarding modal dismissed: %s", exc)
+
+
+def _gemini_video_mode_active(page) -> bool:
+    """Return True when Gemini's video composer is active."""
+    try:
+        return bool(page.evaluate(
+            """() => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .toLowerCase();
+                const body = strip(document.body.innerText || "");
+                return body.includes("mo ta video cua ban")
+                    || body.includes("describe your video")
+                    || body.includes("tao bang omni")
+                    || body.includes("create videos")
+                    || Array.from(document.querySelectorAll("button,[role='button'],span"))
+                        .some((el) => strip(el.innerText || el.textContent || "").trim() === "video");
+            }"""
+        ))
+    except Exception:
+        return False
+
+
+def _select_gemini_video_tool(page, config: WrapTestConfig, prefix: str) -> None:
+    """Open Gemini's plus/tool menu and choose the video generator."""
+    if _gemini_video_mode_active(page):
+        logger.info("  Gemini video mode is already active")
+        return
+
+    # On the current Gemini UI, the left nav has a dedicated "Videos" entry.
+    # This is safer than scanning recents, where chat titles may contain
+    # "Tạo video" and cause the script to open an old conversation.
+    if _click_exact_visible_text(
+        page,
+        ["Videos", "Video"],
+        selectors="a,[role='link'],button,[role='button']",
+        timeout=2000,
+        label="Gemini Videos nav",
+    ):
+        time.sleep(3)
+        _dismiss_gemini_video_onboarding(page, config, prefix)
+        if _gemini_video_mode_active(page):
+            _take_screenshot(page, config, f"{prefix}_video_mode")
+            logger.info("  Selected Gemini video tool via Videos nav")
+            return
+
+    tool_labels = [
+        config.gemini_video_tool_label,
+        "Tạo video",
+        "Create video",
     ]
 
-    for selector in input_selectors:
-        try:
-            page.wait_for_selector(selector, timeout=timeout, state="visible")
-            logger.debug("Gemini ready: found input via %s", selector)
+    if _click_exact_visible_text(page, tool_labels, selectors="[role='menuitem'],button,[role='button']", timeout=1500, label="video tool"):
+        time.sleep(2)
+        _dismiss_gemini_video_onboarding(page, config, prefix)
+        if _gemini_video_mode_active(page):
+            _take_screenshot(page, config, f"{prefix}_video_mode")
+            logger.info("  Selected Gemini video tool")
             return
+
+    trigger_selectors = [
+        'button[aria-label*="Add" i]',
+        'button[aria-label*="Attach" i]',
+        'button[aria-label*="Upload" i]',
+        'button[aria-label*="Thêm" i]',
+        'button[aria-label*="Tải" i]',
+        'button:has-text("+")',
+        'button:has(mat-icon:has-text("add"))',
+        'button:has(mat-icon:has-text("attach_file"))',
+        'button:has(mat-icon:has-text("add_photo_alternate"))',
+    ]
+
+    opened_menu = False
+    for selector in trigger_selectors:
+        try:
+            locator = page.locator(selector)
+            count = locator.count()
+            for idx in range(min(count, 8)):
+                btn = locator.nth(idx)
+                if not btn.is_visible(timeout=500):
+                    continue
+                try:
+                    btn.click(timeout=2000)
+                except Exception:
+                    btn.click(force=True, timeout=2000)
+                time.sleep(1)
+                if _click_exact_visible_text(
+                    page,
+                    tool_labels,
+                    selectors="[role='menuitem'],button,[role='button'],.cdk-overlay-pane *,.mat-mdc-menu-panel *",
+                    timeout=3000,
+                    label="video tool",
+                ):
+                    opened_menu = True
+                    _dismiss_gemini_video_onboarding(page, config, prefix)
+                    break
+            if opened_menu:
+                break
         except Exception:
             continue
 
-    # Last resort: just wait and hope
-    logger.warning("Could not detect Gemini input area, waiting 10s...")
-    time.sleep(10)
+    if not opened_menu and _click_plus_near_prompt_box(page):
+        _take_screenshot(page, config, f"{prefix}_plus_menu_opened")
+        if _click_exact_visible_text(
+            page,
+            tool_labels,
+            selectors="[role='menuitem'],button,[role='button'],.cdk-overlay-pane *,.mat-mdc-menu-panel *",
+            timeout=5000,
+            label="video tool",
+        ):
+            opened_menu = True
+            _dismiss_gemini_video_onboarding(page, config, prefix)
+
+    time.sleep(2)
+    if not _gemini_video_mode_active(page):
+        _take_screenshot(page, config, f"{prefix}_video_mode_failed")
+        raise RuntimeError(
+            "Could not switch Gemini to video mode. "
+            "Open the + menu and check that 'Tạo video' is available."
+        )
+
+    _take_screenshot(page, config, f"{prefix}_video_mode")
+    logger.info("  Selected Gemini video tool")
+
+
+def _gemini_vertical_aspect_active(page, config: WrapTestConfig) -> bool:
+    try:
+        return bool(page.evaluate(
+            """({labels}) => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .replace(/\\s+/g, " ")
+                    .trim()
+                    .toLowerCase();
+                const wanted = labels.map(strip).filter(Boolean);
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                return Array.from(document.querySelectorAll("button,[role='button'],[aria-haspopup],div,span"))
+                    .filter(isVisible)
+                    .map((el) => {
+                        const rect = el.getBoundingClientRect();
+                        const text = strip(`${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`);
+                        return {rect, text};
+                    })
+                    .filter((item) => item.rect.top > window.innerHeight * 0.55)
+                    .filter((item) => item.rect.width >= 50 && item.rect.width <= 560)
+                    .filter((item) => item.rect.height >= 18 && item.rect.height <= 100)
+                    .some((item) => {
+                        const portrait = item.text.includes("9:16")
+                            || item.text.includes("portrait")
+                            || item.text.includes("doc");
+                        return portrait && (wanted.length === 0 || wanted.some((needle) => item.text.includes(needle)) || item.text.includes("9:16"));
+                    });
+            }""",
+            {
+                "labels": [
+                    config.gemini_aspect_ratio,
+                    config.gemini_aspect_label,
+                    "Portrait (9:16)",
+                    "Portrait",
+                    "Dọc (9:16)",
+                    "Dọc",
+                ]
+            },
+        ))
+    except Exception:
+        return False
+
+
+def _select_gemini_vertical_aspect(page, config: WrapTestConfig, prefix: str) -> None:
+    """Set Gemini/Veo aspect ratio to vertical 9:16."""
+    if _gemini_vertical_aspect_active(page, config):
+        logger.info("  Gemini aspect ratio already looks vertical: %s", config.gemini_aspect_label)
+        return
+
+    if not _click_video_aspect_dropdown(page):
+        _take_screenshot(page, config, f"{prefix}_aspect_selector_failed")
+        raise RuntimeError("Could not open Gemini aspect-ratio selector")
+
+    time.sleep(1)
+    vertical_options = [
+        config.gemini_aspect_label,
+        f"Portrait ({config.gemini_aspect_ratio})",
+        "Portrait (9:16)",
+        "Dọc (9:16)",
+        config.gemini_aspect_ratio,
+        "Dọc",
+        "Portrait",
+        "9:16",
+    ]
+    if not (
+        _click_exact_visible_text(
+            page,
+            vertical_options,
+            selectors="[role='option'],[role='menuitem'],button,[role='button'],.cdk-overlay-pane *,.mat-mdc-menu-panel *",
+            timeout=2000,
+            label="vertical aspect",
+        )
+        or _click_video_aspect_option(page, vertical_options)
+    ):
+        _take_screenshot(page, config, f"{prefix}_aspect_vertical_failed")
+        raise RuntimeError("Could not select vertical 9:16 aspect ratio")
+
+    time.sleep(1)
+    if not _gemini_vertical_aspect_active(page, config):
+        _take_screenshot(page, config, f"{prefix}_aspect_vertical_failed")
+        raise RuntimeError("Gemini aspect selector did not switch to 9:16")
+
+    _take_screenshot(page, config, f"{prefix}_aspect_vertical")
+    logger.info("  Selected vertical aspect ratio: %s", config.gemini_aspect_label)
 
 
 def _process_gemini_scene(
@@ -1025,6 +2022,7 @@ def _process_gemini_scene(
     _take_screenshot(page, config, f"{prefix}_01_new_chat")
 
     # ─── Step 1: Upload images ───
+    _prepare_gemini_video_mode(page, config, prefix)
     _gemini_upload_images(page, config, scene_id, prefix, model_image, product_image)
 
     # ─── Step 2: Enter prompt ───
@@ -1090,6 +2088,11 @@ def _gemini_upload_images(
     # ─── Find and click the attachment/upload trigger button ───
     # Gemini has a "+" or attachment icon that opens a file picker
     upload_trigger_selectors = [
+        'button:has-text("Tải tệp lên")',
+        'div[role="menuitem"]:has-text("Tải tệp lên")',
+        'button:has-text("Upload files")',
+        'div[role="menuitem"]:has-text("Upload files")',
+        'button:has-text("Upload")',
         'button[aria-label*="Upload" i]',
         'button[aria-label*="Tải lên" i]',
         'button[aria-label*="Add file" i]',
@@ -1148,6 +2151,46 @@ def _gemini_upload_images(
         except Exception:
             continue
 
+    # Video mode has a large image-reference upload slot below the prompt.
+    try:
+        with page.expect_file_chooser(timeout=5000) as fc_info:
+            if not _click_video_composer_upload_slot(page):
+                raise RuntimeError("video composer upload slot not found")
+        file_chooser = fc_info.value
+        file_chooser.set_files(images_to_upload)
+        time.sleep(3)
+        _take_screenshot(page, config, f"{prefix}_02_images_uploaded")
+        logger.info("  ✓ %d image(s) uploaded via video composer upload slot", len(images_to_upload))
+        return
+    except Exception as exc:
+        logger.debug("  Video composer upload slot failed: %s", exc)
+
+    # Gemini's video composer often hides upload behind the plus menu inside
+    # the prompt box. Click that plus by geometry, then choose upload.
+    if _click_plus_near_prompt_box(page):
+        _take_screenshot(page, config, f"{prefix}_02_plus_menu_for_upload")
+        upload_labels = ["Tải tệp lên", "Upload files", "Upload", "Upload image"]
+        for _ in range(2):
+            try:
+                with page.expect_file_chooser(timeout=5000) as fc_info:
+                    if not _click_visible_text(
+                        page,
+                        upload_labels,
+                        selectors="button,[role='button'],[role='menuitem'],div,span",
+                        timeout=3000,
+                        label="upload menu item",
+                    ):
+                        break
+                file_chooser = fc_info.value
+                file_chooser.set_files(images_to_upload)
+                time.sleep(3)
+                _take_screenshot(page, config, f"{prefix}_02_images_uploaded")
+                logger.info("  ✓ %d image(s) uploaded via plus menu", len(images_to_upload))
+                return
+            except Exception as exc:
+                logger.debug("  Plus-menu upload failed: %s", exc)
+                break
+
     # Third try: find file input that may have appeared after clicking something
     time.sleep(1)
     file_input = _find_element(
@@ -1175,20 +2218,7 @@ def _gemini_enter_prompt(
 ) -> None:
     """Type the VEO prompt into Gemini's rich text editor."""
 
-    # Gemini uses various rich text editor implementations
-    input_selectors = [
-        'rich-textarea div[contenteditable="true"]',   # Gemini-specific
-        '.ql-editor[contenteditable="true"]',          # Quill editor
-        'div[contenteditable="true"][role="textbox"]',  # ARIA textbox
-        'div[contenteditable="true"][aria-label]',     # Labeled contenteditable
-        '.ProseMirror[contenteditable="true"]',        # ProseMirror
-        'div[contenteditable="true"]',                 # Generic contenteditable
-        'textarea',                                     # Fallback textarea
-    ]
-
-    text_input = _find_element(
-        page, input_selectors, timeout=10000, state="visible", label="text input",
-    )
+    text_input = _wait_for_gemini_textbox(page, timeout=10000)
 
     if not text_input:
         _take_screenshot(page, config, f"{prefix}_03_no_input")
@@ -1211,17 +2241,12 @@ def _gemini_enter_prompt(
     try:
         page.evaluate(
             """(text) => {
-                // Use execCommand insertText for contenteditable
-                const input = document.querySelector(
-                    'rich-textarea div[contenteditable="true"],'
-                    '.ql-editor[contenteditable="true"],'
-                    'div[contenteditable="true"][role="textbox"],'
-                    'div[contenteditable="true"]'
-                );
+                const input = document.activeElement;
                 if (input) {
                     input.focus();
-                    // Try insertText first (triggers input events properly)
                     document.execCommand('insertText', false, text);
+                    input.dispatchEvent(new InputEvent('input', {bubbles: true, inputType: 'insertText', data: text}));
+                    input.dispatchEvent(new Event('change', {bubbles: true}));
                 }
             }""",
             veo_prompt,
@@ -1231,13 +2256,26 @@ def _gemini_enter_prompt(
         # Verify text was entered
         current_text = page.evaluate(
             """() => {
-                const el = document.querySelector(
-                    'rich-textarea div[contenteditable="true"],'
-                    '.ql-editor[contenteditable="true"],'
-                    'div[contenteditable="true"][role="textbox"],'
-                    'div[contenteditable="true"]'
-                );
-                return el ? el.innerText : '';
+                const selectors = [
+                    'rich-textarea div[contenteditable="true"]',
+                    '.ql-editor[contenteditable="true"]',
+                    'div[contenteditable="true"][role="textbox"]',
+                    'div[contenteditable="true"]',
+                    'textarea'
+                ];
+                const visible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                const el = selectors
+                    .flatMap((selector) => Array.from(document.querySelectorAll(selector)))
+                    .filter(visible)
+                    .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)
+                    .pop();
+                return el ? (el.value || el.innerText || el.textContent || '') : '';
             }"""
         )
         if current_text and len(current_text.strip()) > 20:
@@ -1303,9 +2341,11 @@ def _gemini_send_message(
         '.input-area-container button:last-of-type',
     ]
 
-    send_btn = _find_element(
-        page, send_selectors, timeout=5000, state="visible", label="send button",
-    )
+    send_btn = _find_send_button(page)
+    if not send_btn:
+        send_btn = _find_element(
+            page, send_selectors, timeout=5000, state="visible", label="send button",
+        )
 
     if send_btn:
         # Wait a moment for any image processing to complete
@@ -1326,6 +2366,45 @@ def _gemini_send_message(
         _take_screenshot(page, config, f"{prefix}_04_enter_sent")
 
 
+def _find_send_button(page):
+    """Find Gemini's enabled send/submit button without hitting mic/model buttons."""
+    try:
+        handle = page.evaluate_handle(
+            """() => {
+                const strip = (text) => (text || "")
+                    .normalize("NFD")
+                    .replace(/[\\u0300-\\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .toLowerCase();
+                const isVisible = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    return rect.width > 0 && rect.height > 0
+                        && style.visibility !== "hidden"
+                        && style.display !== "none";
+                };
+                const bad = ["mic", "micro", "voice", "model", "flash", "upload", "attach", "them", "tai"];
+                const good = ["send", "submit", "gui", "arrow_upward"];
+                const buttons = Array.from(document.querySelectorAll("button,[role='button']"))
+                    .filter((el) => isVisible(el) && !el.disabled && el.getAttribute("aria-disabled") !== "true");
+                for (const el of buttons.reverse()) {
+                    const text = strip(`${el.innerText || ""} ${el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`);
+                    if (bad.some((needle) => text.includes(needle))) continue;
+                    if (good.some((needle) => text.includes(needle))) return el;
+                    const icon = strip(Array.from(el.querySelectorAll("mat-icon,span"))
+                        .map((node) => node.textContent || "")
+                        .join(" "));
+                    if (icon.includes("send") || icon.includes("arrow_upward")) return el;
+                }
+                return null;
+            }"""
+        )
+        return handle.as_element()
+    except Exception:
+        return None
+
+
 def _gemini_wait_for_video(
     page, config: WrapTestConfig, scene_id: str, prefix: str,
 ) -> None:
@@ -1335,6 +2414,8 @@ def _gemini_wait_for_video(
     start_time = time.time()
     poll_interval = 8  # seconds
     last_screenshot_at = 0
+    last_loading = False
+    saw_limit_notice = False
 
     while time.time() - start_time < config.veo_timeout_sec:
         elapsed = int(time.time() - start_time)
@@ -1344,18 +2425,26 @@ def _gemini_wait_for_video(
             """() => {
                 // Check for loading/thinking indicators
                 const loading = document.querySelector(
-                    '.loading-indicator, .thinking-indicator, '
-                    '.response-loading, [aria-busy="true"], '
-                    '.model-response-loading, .generating'
+                    '.loading-indicator, .thinking-indicator, .response-loading, [aria-busy="true"], .model-response-loading, .generating'
                 );
                 // Also check if the stop button is visible (means still generating)
                 const stopBtn = document.querySelector(
-                    'button[aria-label*="Stop" i], '
-                    'button[aria-label*="Dừng" i]'
+                    'button[aria-label*="Stop" i], button[aria-label*="Dừng" i]'
                 );
                 return !!(loading || (stopBtn && stopBtn.offsetParent !== null));
             }"""
         )
+        last_loading = bool(is_loading)
+
+        page_status = page.evaluate(
+            """() => (document.body.innerText || "").slice(-2500)"""
+        )
+        normalized_status = _strip_accents(page_status)
+        if "limit reached" in normalized_status and not saw_limit_notice:
+            saw_limit_notice = True
+            logger.warning(
+                "  Gemini shows a limit notice; generation may be delayed or downgraded."
+            )
 
         # ── Check for video element in the response ──
         has_video = page.evaluate(
@@ -1386,8 +2475,7 @@ def _gemini_wait_for_video(
             response_text = page.evaluate(
                 """() => {
                     const responses = document.querySelectorAll(
-                        '.model-response-text, .response-content, '
-                        '.message-content, [data-message-author-role="model"]'
+                        '.model-response-text, .response-content, .message-content, [data-message-author-role="model"]'
                     );
                     const last = responses[responses.length - 1];
                     return last ? last.innerText.substring(0, 500) : '';
@@ -1409,14 +2497,26 @@ def _gemini_wait_for_video(
 
         # ── Periodic screenshot ──
         if elapsed - last_screenshot_at >= 30:
-            logger.info("  Still waiting... %ds elapsed (loading=%s)", elapsed, is_loading)
+            logger.info(
+                "  Still waiting... %ds elapsed (loading=%s, limit_notice=%s)",
+                elapsed,
+                is_loading,
+                saw_limit_notice,
+            )
             _take_screenshot(page, config, f"{prefix}_waiting_{elapsed}s")
             last_screenshot_at = elapsed
 
         time.sleep(poll_interval)
 
     _take_screenshot(page, config, f"{prefix}_timeout")
-    raise TimeoutError(f"Video generation timed out after {config.veo_timeout_sec}s for {scene_id}")
+    detail = ""
+    if last_loading:
+        detail = " Gemini was still generating when the timeout expired; increase VEO_TIMEOUT_SEC."
+    if saw_limit_notice:
+        detail += " Gemini also showed a limit notice for this account/session."
+    raise TimeoutError(
+        f"Video generation timed out after {config.veo_timeout_sec}s for {scene_id}.{detail}"
+    )
 
 
 def _gemini_download_video(

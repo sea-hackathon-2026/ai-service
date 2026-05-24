@@ -43,15 +43,29 @@ models/
 # ── Logs ──
 logs/
 *.log
+*.err
 
 # ── Docker ──
 .dockerignore
 
 # ── Testing ──
 .pytest_cache/
+.chrome_profile/
 .coverage
 htmlcov/
 
 # ── OS ──
 .DS_Store
 Thumbs.db
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+data/
+*.mp4
+*.wav
+
+.chrome_profile/
+

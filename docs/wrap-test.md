@@ -442,18 +442,53 @@ distorted face, different person, changed hairstyle, changed outfit, warped prod
 
 ---
 
-# 6. Cơ chế Gemini/Veo manual bridge
+# 6. Cơ chế Gemini/Veo bridge hiện tại
 
-Vì m đang test workflow, bridge chỉ cần làm 4 việc:
+Hiện tại dùng **Gemini web chính thức**:
+
+```env
+GEMINI_VEO_URL=https://gemini.google.com/
+GEMINI_VIDEO_TOOL_LABEL=Tạo video
+GEMINI_ASPECT_RATIO=9:16
+GEMINI_ASPECT_LABEL=Dọc (9:16)
+```
+
+Không dùng link Veo/Flow cũ vì route đó có thể không còn tồn tại. Luồng automation trong
+`tests/wraptest.py` phải đi từ Gemini home/app, mở tool `Tạo video`, chọn output
+`Dọc (9:16)`, rồi mới upload `model.png`, `product.png` và nhập prompt vào textbox
+`Mô tả video của bạn`.
+
+Nếu Gemini chặn trình duyệt do Playwright tự mở, dùng Chrome thật đã đăng nhập qua CDP:
+
+```powershell
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
+  --remote-debugging-port=9222 `
+  --user-data-dir="$PWD\.chrome_gemini_profile"
+```
+
+Sau đó set:
+
+```env
+CHROME_CDP_URL=http://127.0.0.1:9222
+```
+
+Vì m đang test workflow, bridge cần làm các việc:
 
 ```text
 1. Đọc external_prompt_queue.json
-2. Copy prompt scene hiện tại vào clipboard
-3. M paste vào Gemini/Veo, generate, download video
-4. Script watch folder download và map video về đúng scene_id
+2. Mở https://gemini.google.com/ bằng Chrome đã đăng nhập
+3. Chọn Tạo video
+4. Chọn Dọc (9:16)
+5. Upload ảnh model + ảnh sản phẩm
+6. Paste prompt scene hiện tại vào textbox video
+7. Generate, đợi video xong, download video
+8. Script map video về đúng scene_id
 ```
 
-Không cần auto click Gemini. Việc này giữ pipeline sạch hơn, vì Playwright cũng khuyến nghị không automate default Chrome profile; nếu có browser automation thì nên dùng profile riêng thay vì profile duyệt web chính. ([Playwright][2])
+Nếu auto click thất bại, script vẫn lưu screenshot từng bước và file prompt fallback để làm
+manual bridge. Việc này giữ pipeline sạch hơn, vì Playwright cũng khuyến nghị không
+automate default Chrome profile; nếu có browser automation thì nên dùng profile riêng thay
+vì profile duyệt web chính. ([Playwright][2])
 
 ## Output queue
 
