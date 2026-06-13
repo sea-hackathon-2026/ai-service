@@ -2,10 +2,24 @@
 
 **Video Generation & Text-to-Speech API** with real-time WebSocket streaming — built with FastAPI and Clean Architecture.
 
-
-| Demo 1 | Demo 2 | Demo 3 |
-|---|---|---|
-| [View video](https://github.com/user-attachments/assets/a47cb5cc-34f1-4cce-8176-a9c7fe0a065e) | [View video](https://github.com/user-attachments/assets/61c010e1-77cd-4f3b-bb16-60e1802ce8e3) | [View video](https://github.com/user-attachments/assets/4704ca9f-31ed-4a19-84b1-e3fd849fe8e3) |
+<table>
+  <tr>
+    <td align="center"><b>Demo 1</b></td>
+    <td align="center"><b>Demo 2</b></td>
+    <td align="center"><b>Demo 3</b></td>
+  </tr>
+  <tr>
+    <td align="center">
+      <video src="https://github.com/user-attachments/assets/a47cb5cc-34f1-4cce-8176-a9c7fe0a065e" width="260" controls></video>
+    </td>
+    <td align="center">
+      <video src="https://github.com/user-attachments/assets/61c010e1-77cd-4f3b-bb16-60e1802ce8e3" width="260" controls></video>
+    </td>
+    <td align="center">
+      <video src="https://github.com/user-attachments/assets/4704ca9f-31ed-4a19-84b1-e3fd849fe8e3" width="260" controls></video>
+    </td>
+  </tr>
+</table>
 
 
 ## ✨ Features
