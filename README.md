@@ -182,6 +182,10 @@ app/
 └── main.py        # App factory + lifespan
 ```
 
+<img width="1920" height="1080" alt="6" src="https://github.com/user-attachments/assets/35d09ae2-6da2-46b5-9d97-e198a7676d95" />
+
+<img width="1920" height="1080" alt="7" src="https://github.com/user-attachments/assets/49e1def1-cedf-4c24-818b-274931d4653c" />
+
 ## 🔌 Plugging in Real AI Models
 
 The mock adapters in `app/infrastructure/ai_models/` can be replaced with real model implementations:
