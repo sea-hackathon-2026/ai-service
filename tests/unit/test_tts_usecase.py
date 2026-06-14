@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from app.application.dto.tts_request import TTSRequest
-from app.infrastructure.ai_models.tts_engine import MockTTSEngine
+from services.ai_api.application.dto.tts_request import TTSRequest
+from services.ai_api.infrastructure.ai_models.tts_engine import MockTTSEngine
 
 
 class TestTTSRequest:

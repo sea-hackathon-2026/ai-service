@@ -1,44 +1,29 @@
-version: "3.9"
-
 services:
-  # ── AI Service API ──
-  api:
-    build: .
-    container_name: ai-service-api
+  ai-api:
+    build:
+      context: .
+      dockerfile: services/ai_api/Dockerfile
+    env_file: .env
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     volumes:
       - ./data:/app/data
-      - ./logs:/app/logs
-    depends_on:
-      redis:
-        condition: service_healthy
     restart: unless-stopped
-    # Uncomment for GPU support:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
 
-  # ── Redis (cache + pub/sub) ──
-  redis:
-    image: redis:7-alpine
-    container_name: ai-service-redis
+  rag-service:
+    build:
+      context: .
+      dockerfile: services/rag_service/Dockerfile
+    env_file: .env
     ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      - "8001:8001"
     restart: unless-stopped
 
-volumes:
-  redis_data:
+  sales-agent:
+    build:
+      context: .
+      dockerfile: services/sales_agent/Dockerfile
+    env_file: .env
+    ports:
+      - "8002:8002"
+    restart: unless-stopped

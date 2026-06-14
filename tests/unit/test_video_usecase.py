@@ -3,13 +3,9 @@
 from __future__ import annotations
 
 import pytest
-import pytest_asyncio
 
-from app.application.dto.video_request import VideoRequest
-from app.application.use_cases.generate_video import GenerateVideoUseCase
-from app.infrastructure.ai_models.video_generator import MockVideoGenerator
-from app.infrastructure.persistence.repositories.job_repository import SQLAlchemyJobRepository
-from app.infrastructure.storage.local_storage import LocalStorageService
+from services.ai_api.application.dto.video_request import VideoRequest
+from services.ai_api.infrastructure.ai_models.video_generator import MockVideoGenerator
 
 
 class TestVideoRequest:

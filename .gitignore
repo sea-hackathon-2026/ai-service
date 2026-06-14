@@ -1,71 +1,40 @@
-# ── Python ──
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
 *.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 dist/
 build/
-.eggs/
-*.egg
 
-# ── Virtual Environment ──
+# Environments and local secrets
 .venv/
 venv/
-env/
-.env/
-
-# ── IDE ──
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# ── Environment ──
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
-# ── Data / Outputs ──
-data/
+# Runtime state and generated media
+/data/
+/logs/
+/models/
 *.db
 *.sqlite3
-outputs/
-
-# ── AI Models (large files) ──
-models/
+*.mp4
+*.wav
 *.pt
 *.pth
 *.onnx
-*.bin
 *.safetensors
 
-# ── Logs ──
-logs/
-*.log
-*.err
-
-# ── Docker ──
-.dockerignore
-
-# ── Testing ──
-.pytest_cache/
-.chrome_profile/
-.coverage
-htmlcov/
-
-# ── OS ──
+# Editors and operating systems
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+*.swp
 
-# Node / Next.js
-node_modules/
-.next/
-out/
-
-data/
-*.mp4
-*.wav
-
+# Browser automation
 .chrome_profile/
-

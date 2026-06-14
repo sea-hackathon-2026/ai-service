@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
 
 
@@ -31,7 +30,7 @@ class TestVideoEndpoints:
 
     @pytest.mark.asyncio
     async def test_get_video_config(self, client: AsyncClient):
-        response = await client.get("/api/v1/video/config")
+        response = await client.get("/v1/video/config")
         assert response.status_code == 200
         data = response.json()
         assert "config" in data
@@ -39,18 +38,16 @@ class TestVideoEndpoints:
     @pytest.mark.asyncio
     async def test_generate_video_requires_auth(self, client: AsyncClient):
         response = await client.post(
-            "/api/v1/video/generate",
+            "/v1/video/generate",
             json={"prompt": "test"},
         )
         # Should fail without API key
         assert response.status_code in (401, 422)
 
     @pytest.mark.asyncio
-    async def test_generate_video_with_auth(
-        self, client: AsyncClient, api_key_header: dict
-    ):
+    async def test_generate_video_with_auth(self, client: AsyncClient, api_key_header: dict):
         response = await client.post(
-            "/api/v1/video/generate",
+            "/v1/video/generate",
             json={"prompt": "A cat walking in the park"},
             headers=api_key_header,
         )
@@ -65,18 +62,16 @@ class TestTTSEndpoints:
 
     @pytest.mark.asyncio
     async def test_list_voices(self, client: AsyncClient):
-        response = await client.get("/api/v1/tts/voices")
+        response = await client.get("/v1/tts/voices")
         assert response.status_code == 200
         data = response.json()
         assert "voices" in data
         assert len(data["voices"]) > 0
 
     @pytest.mark.asyncio
-    async def test_synthesize_with_auth(
-        self, client: AsyncClient, api_key_header: dict
-    ):
+    async def test_synthesize_with_auth(self, client: AsyncClient, api_key_header: dict):
         response = await client.post(
-            "/api/v1/tts/synthesize",
+            "/v1/tts/synthesize",
             json={"text": "Xin chào Việt Nam", "voice": "vi-female-01"},
             headers=api_key_header,
         )

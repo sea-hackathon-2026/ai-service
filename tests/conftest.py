@@ -1,76 +1,70 @@
-"""
-Test configuration and shared fixtures.
-
-Provides:
-- Test database (in-memory SQLite)
-- Test client with async support
-- Mock service fixtures
-"""
+"""Shared fixtures for service-level integration tests."""
 
 from __future__ import annotations
 
-import asyncio
 import os
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
+
+# Settings must exist before importing modules that compose global adapters.
+os.environ["AI_API_DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["AI_API_API_KEY_SECRET"] = "test-api-key"
+os.environ["AI_API_DEBUG"] = "true"
+os.environ["AI_API_STORAGE_LOCAL_PATH"] = "./data/test-outputs"
+
+from services.ai_api.infrastructure.persistence.database import (  # noqa: E402
+    Base,
+    get_async_session,
 )
+from services.ai_api.infrastructure.persistence.models.job_model import (  # noqa: E402,F401
+    JobModel,
+)
+from services.ai_api.main import app  # noqa: E402
 
-# Set test environment before importing app
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
-os.environ["API_KEY_SECRET"] = "test-api-key"
-os.environ["DEBUG"] = "true"
-
-from app.infrastructure.persistence.database import Base
-from app.main import app
-
-
-# ── Async engine for tests (in-memory) ──
 test_engine = create_async_engine(
     "sqlite+aiosqlite:///:memory:",
-    echo=False,
+    poolclass=StaticPool,
     connect_args={"check_same_thread": False},
 )
 test_session_factory = async_sessionmaker(
-    test_engine, class_=AsyncSession, expire_on_commit=False
+    test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
 )
 
 
-@pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Create a fresh database session for each test."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+async def _test_session() -> AsyncGenerator[AsyncSession, None]:
     async with test_session_factory() as session:
-        yield session
-
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 @pytest_asyncio.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
-    """Async HTTP test client for the FastAPI app."""
-    # Initialize test database
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Provide an HTTP client whose repository uses the test database."""
 
+    async with test_engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+
+    app.dependency_overrides[get_async_session] = _test_session
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+    async with AsyncClient(transport=transport, base_url="http://test") as http_client:
+        yield http_client
 
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    app.dependency_overrides.clear()
+    async with test_engine.begin() as connection:
+        await connection.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture
-def api_key_header() -> dict:
-    """Auth headers for test requests."""
+def api_key_header() -> dict[str, str]:
     return {"X-API-Key": "test-api-key"}

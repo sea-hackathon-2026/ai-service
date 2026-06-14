@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app.domain.entities.scene import SceneChunk
-from app.infrastructure.ai_models.micro_scene_pipeline import (
+from services.ai_api.domain.entities.scene import SceneChunk
+from services.ai_api.infrastructure.ai_models.micro_scene_pipeline import (
     _dimensions_for_aspect_ratio,
     build_veo_prompt,
 )
