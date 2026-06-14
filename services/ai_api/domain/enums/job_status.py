@@ -1,9 +1,9 @@
 """Job status enum - Tracks the lifecycle state of an AI processing job."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Possible states of an AI processing job."""
 
     PENDING = "pending"  # Job created, waiting in queue

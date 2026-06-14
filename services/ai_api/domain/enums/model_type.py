@@ -1,9 +1,9 @@
 """Model type enum - Identifies which AI model pipeline to use."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ModelType(str, Enum):
+class ModelType(StrEnum):
     """Types of AI model pipelines available in the service."""
 
     VIDEO_GEN = "video_gen"  # Video generation (text/image to video)
