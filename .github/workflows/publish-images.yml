@@ -65,7 +65,7 @@ jobs:
             type=raw,value=sha-${{ steps.revision.outputs.short_sha }}
 
       - name: Build and publish image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}
