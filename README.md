@@ -1,123 +1,99 @@
 # AI Live-Commerce Platform
 
-A service-oriented AI backend for live-commerce automation. The repository
-demonstrates three different AI engineering workloads behind explicit service
-boundaries:
+[![CI](https://github.com/sea-hackathon-2026/ai-service/actions/workflows/ci.yml/badge.svg)](https://github.com/sea-hackathon-2026/ai-service/actions/workflows/ci.yml)
 
-- **AI API**: job orchestration for video generation, speech synthesis, media
-  storage, and real-time WebSocket delivery.
-- **RAG service**: deterministic comment classification, TF-IDF retrieval, and
-  grounded presenter-script generation.
-- **Sales agent**: a stateful Google ADK agent that collects order information
-  and falls back to a secondary model provider when the primary quota is
-  exhausted.
+Backend-only AI platform for live-commerce automation. The monorepo contains
+three independently deployable Python services with explicit Clean Architecture
+boundaries, isolated dependencies, automated tests, and container delivery.
 
-The codebase is intentionally backend-only. Experimental notebooks, duplicated
-frontend projects, generated UI scripts, and copied service trees have been
-removed. The only notebook retained is the operational Colab host for the GPU
-AI API.
+## Services
+
+| Service | Port | Responsibility |
+| --- | ---: | --- |
+| AI API | 8000 | Video jobs, text-to-speech, media persistence, and WebSocket streaming |
+| RAG service | 8001 | Comment classification, retrieval, and grounded presenter-script generation |
+| Sales agent | 8002 | Stateful order collection through Google ADK with model-provider fallback |
+
+The repository deliberately contains no frontend package or npm lockfile. The
+previous experimental frontend and its vulnerable PostCSS dependency were
+removed because frontend delivery is outside this service's ownership boundary.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    Client[API Client / Livestream Platform]
+    Client[API Client]
     AI[AI API :8000]
     RAG[RAG Service :8001]
     Agent[Sales Agent :8002]
     DB[(Job Database)]
-    Storage[(Generated Media)]
-    Models[Video / TTS / Gemini Adapters]
-    KB[(Product Knowledge JSON)]
-    LLM[OpenAI Adapter]
-    ADK[Google ADK + LiteLLM]
+    Media[(Generated Media)]
+    Providers[Video, TTS, and LLM Providers]
+    KB[(Product Knowledge)]
 
     Client --> AI
     Client --> RAG
     Client --> Agent
     AI --> DB
-    AI --> Storage
-    AI --> Models
+    AI --> Media
+    AI --> Providers
     RAG --> KB
-    RAG --> LLM
-    Agent --> ADK
+    RAG --> Providers
+    Agent --> Providers
 ```
 
-Each Python service follows the same dependency direction:
+Every service applies the same dependency rule:
 
 ```text
-API transport -> application use cases -> domain ports and models
+API transport -> application use cases -> domain models and ports
                                       <- infrastructure adapters
 ```
 
-Domain and application code do not import FastAPI, SQLAlchemy, OpenAI, or
-Google ADK. Provider and persistence decisions are assembled at the service
-composition root.
+- Domain code contains business rules and provider-neutral interfaces.
+- Application code coordinates use cases and transaction boundaries.
+- Infrastructure code implements databases, storage, retrieval, and model SDKs.
+- API code validates transport data and maps application results to HTTP.
+- Composition roots select concrete adapters without leaking SDK concerns inward.
+
+See [System Architecture](docs/architecture.md) for component boundaries,
+dependency direction, runtime flows, and design decisions.
 
 ## Repository Layout
 
 ```text
 services/
-  ai_api/          Clean Architecture media orchestration service
-  rag_service/     Retrieval and grounded script generation service
-  sales_agent/     Stateful conversational sales agent
+  ai_api/              Media orchestration and async job service
+  rag_service/         Retrieval and grounded generation service
+  sales_agent/         Conversational sales-closing agent
 tests/
-  unit/            Pure policy, adapter, and use-case tests
-  integration/     HTTP + dependency injection + database tests
-requirements/      Dependency set per deployable service
+  unit/                Domain policies, use cases, and deterministic tools
+  integration/         FastAPI wiring and persistence behavior
+requirements/          Dependency set per deployable service
 notebooks/
   ai_service_colab.ipynb
-docs/              Architecture, AI design, API, and development guides
+docs/                  Architecture, AI engineering, API, operations, and CI/CD
+.github/workflows/      Continuous integration and container publishing
 ```
 
+The Colab notebook is the only retained notebook because it is an operational
+GPU host for the AI API. Exploratory notebooks are intentionally excluded.
+
 ## Quick Start
-# 🎬 AI Service Backend
 
-**Video Generation & Text-to-Speech API** with real-time WebSocket streaming — built with FastAPI and Clean Architecture.
-
-<table>
-  <tr>
-    <td align="center"><b>Demo 1</b></td>
-    <td align="center"><b>Demo 2</b></td>
-    <td align="center"><b>Demo 3</b></td>
-  </tr>
-  <tr>
-    <td align="center">
-      <video src="https://github.com/user-attachments/assets/a47cb5cc-34f1-4cce-8176-a9c7fe0a065e" width="260" controls></video>
-    </td>
-    <td align="center">
-      <video src="https://github.com/user-attachments/assets/61c010e1-77cd-4f3b-bb16-60e1802ce8e3" width="260" controls></video>
-    </td>
-    <td align="center">
-      <video src="https://github.com/user-attachments/assets/4704ca9f-31ed-4a19-84b1-e3fd849fe8e3" width="260" controls></video>
-    </td>
-  </tr>
-</table>
-
-
-## ✨ Features
-
-- 🎥 **Video Generation** — Generate videos from text prompts (pluggable model backends)
-- 🔊 **Text-to-Speech** — Synthesize speech with real-time audio streaming
-- ⚡ **WebSocket Streaming** — Receive chunks in real-time (frame-by-frame video, audio segments)
-- 🌐 **Website Integration** — CORS-enabled REST + WebSocket APIs for frontend integration
-- 🏗️ **Clean Architecture** — Domain-driven design with dependency inversion
-- 🔐 **API Key Auth** — Secure endpoints with API key authentication
-- 📊 **Job Tracking** — Track AI processing jobs with status and progress
-- 🐳 **Docker Ready** — Multi-stage Dockerfile with docker-compose
-
-## 🚀 Quick Start
-
-### 1. Setup
+Use Python 3.11.
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+.venv/Scripts/activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-copy .env.example .env
 ```
 
-Run services in separate terminals:
+On macOS or Linux, activate the environment with `source .venv/bin/activate`.
+Copy `.env.example` to `.env`, then provide only the credentials required by
+the adapters you enable. The populated `.env` file is ignored by Git.
+
+Run each service in a separate terminal:
 
 ```bash
 uvicorn services.ai_api.main:app --reload --port 8000
@@ -125,198 +101,79 @@ uvicorn services.rag_service.main:app --reload --port 8001
 uvicorn services.sales_agent.main:app --reload --port 8002
 ```
 
-Or run the complete backend stack:
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-For `/api/v1/video/livestream/jobs`, install `ffmpeg` on the host. Set
-`LIVESTREAM_ENABLE_WAV2LIP=true` only after Wav2Lip and its checkpoint exist.
-
-### 3. Explore the API
-
-- **Swagger UI**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
-
-## 📡 WebSocket Usage
-
-### Video Generation (Real-time Streaming)
-
-```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/video/generate');
-
-// 1. Authenticate
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    type: 'authenticate',
-    api_key: 'your-api-key'
-  }));
-};
-
-// 2. Send generation request after auth
-ws.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-  
-  if (msg.type === 'authenticated') {
-    ws.send(JSON.stringify({
-      type: 'generate',
-      prompt: 'A cat walking in a park',
-      config: { width: 512, height: 512, num_frames: 16 }
-    }));
-  }
-  
-  if (msg.type === 'progress') {
-    console.log(`Progress: ${msg.percent}% — ${msg.stage}`);
-  }
-  
-  if (msg.type === 'frame_chunk') {
-    // Decode base64 frame data and render
-    const frameData = atob(msg.data);
-    console.log(`Frame ${msg.frame_idx}/${msg.total_frames}`);
-  }
-  
-  if (msg.type === 'complete') {
-    console.log('Video ready:', msg.url);
-  }
-  
-  if (msg.type === 'error') {
-    console.error(`Error [${msg.code}]: ${msg.message}`);
-  }
-};
-```
-
-### Text-to-Speech (Real-time Audio Streaming)
-
-```javascript
-const ws = new WebSocket('ws://localhost:8000/ws/tts/stream');
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({ type: 'authenticate', api_key: 'your-api-key' }));
-};
-
-ws.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-  
-  if (msg.type === 'authenticated') {
-    ws.send(JSON.stringify({
-      type: 'synthesize',
-      text: 'Xin chào, đây là demo text-to-speech.',
-      voice: 'vi-female-01',
-      format: 'wav'
-    }));
-  }
-  
-  if (msg.type === 'audio_chunk') {
-    // Decode and play audio chunk immediately
-    const audioData = atob(msg.data);
-    console.log(`Audio chunk ${msg.chunk_idx}, ${msg.duration_ms}ms`);
-    // Feed to AudioContext for real-time playback
-  }
-  
-  if (msg.type === 'complete') {
-    console.log(`Done: ${msg.total_chunks} chunks, ${msg.duration_ms}ms total`);
-  }
-};
-```
-
-## 🏗️ Architecture
-
-```
-app/
-├── api/           # Presentation Layer (REST + WebSocket endpoints)
-│   ├── schemas/   # Pydantic request/response models
-│   ├── deps.py    # Dependency injection wiring
-│   ├── middlewares/
-│   └── v1/        # Versioned endpoints
-│       ├── endpoints/
-│       └── websockets/
-├── application/   # Application Layer (Use Cases)
-│   ├── dto/       # Data Transfer Objects
-│   └── use_cases/ # Business logic orchestrators
-├── domain/        # Domain Layer (Pure Business Logic)
-│   ├── entities/  # Core data objects
-│   ├── enums/     # Status codes, types
-│   ├── exceptions/# Domain errors
-│   └── interfaces/# Abstract ports (ABCs)
-├── infrastructure/# Infrastructure Layer (Adapters)
-│   ├── ai_models/ # AI model adapters (plug your model here)
-│   ├── persistence/# Database (SQLAlchemy)
-│   ├── storage/   # File storage (local/S3)
-│   ├── cache/     # Redis cache
-│   └── queue/     # Task management
-├── core/          # Cross-cutting Concerns
-│   ├── logging.py
-│   ├── security.py
-│   ├── ws_manager.py
-│   └── events.py
-├── config.py      # Pydantic Settings
-└── main.py        # App factory + lifespan
-```
-
-<img width="1920" height="1080" alt="6" src="https://github.com/user-attachments/assets/35d09ae2-6da2-46b5-9d97-e198a7676d95" />
-
-<img width="1920" height="1080" alt="7" src="https://github.com/user-attachments/assets/49e1def1-cedf-4c24-818b-274931d4653c" />
-
-## 🔌 Plugging in Real AI Models
-
-The mock adapters in `app/infrastructure/ai_models/` can be replaced with real model implementations:
-
-1. **Video**: Implement `IVideoService` in `video_generator.py` using your model (CogVideoX, Wan, etc.)
-2. **TTS**: Implement `ITTSService` in `tts_engine.py` using your model (XTTS, Bark, etc.)
-3. Update `app/api/deps.py` to instantiate your real adapter instead of the mock
-
-## 🧪 Testing
+Or start the complete backend stack:
 
 ```bash
 docker compose up --build
 ```
 
-OpenAPI is available at `/docs` when debug mode is enabled. The RAG and sales
-services expose docs by default; set `AI_API_DEBUG=true` for AI API docs.
+OpenAPI documentation is available at `/docs`. Set `AI_API_DEBUG=true` to
+enable the AI API documentation in development.
+
+## Core API Surface
+
+| Service | Method | Path | Purpose |
+| --- | --- | --- | --- |
+| AI API | GET | `/health` | Liveness probe |
+| AI API | POST | `/v1/video/generate` | Create a video generation job |
+| AI API | POST | `/v1/tts/synthesize` | Synthesize speech |
+| AI API | GET | `/v1/jobs/{job_id}` | Read job state |
+| AI API | WS | `/v1/ws/video/generate` | Stream video generation events |
+| RAG | POST | `/v1/retrieval/search` | Retrieve relevant product knowledge |
+| RAG | POST | `/v1/scripts/generate` | Generate grounded presenter scripts |
+| Sales agent | POST | `/v1/chat` | Continue a stateful sales conversation |
+| Sales agent | POST | `/v1/sessions/reset` | Reset conversation state |
+
+The complete request and response contracts are documented in
+[API Reference](docs/api-reference.md).
 
 ## Quality Gates
 
 ```bash
 ruff check services tests
+python -m compileall -q services tests
 pytest -q
 ```
 
-Tests replace external model providers with fakes and override the FastAPI
-database dependency with an isolated in-memory SQLite engine. No API key or
-network request is required for the automated suite.
+Tests replace paid model providers with deterministic fakes and use an isolated
+SQLite database. The default suite requires no API key or external network call.
+
+## CI/CD
+
+GitHub Actions provides two automated stages:
+
+1. `CI` runs Ruff, bytecode compilation, dependency validation, and the complete
+   test suite for pushes and pull requests.
+2. `Publish Containers` starts only after CI succeeds on `main`, then builds and
+   publishes one image per service to GitHub Container Registry.
+
+Published image names follow this pattern:
+
+```text
+ghcr.io/sea-hackathon-2026/ai-service-ai-api
+ghcr.io/sea-hackathon-2026/ai-service-rag-service
+ghcr.io/sea-hackathon-2026/ai-service-sales-agent
+```
+
+Images receive `latest` and immutable `sha-<commit>` tags. Dependabot monitors
+Python and GitHub Actions dependencies weekly. See [CI/CD and Release
+Operations](docs/ci-cd.md) for triggers, permissions, rollback, and verification.
 
 ## Documentation
 
-- [System architecture](docs/architecture.md)
-- [AI and agent engineering](docs/ai-engineering.md)
-- [API contracts](docs/api-reference.md)
-- [Development and extension guide](docs/development.md)
-- [Colab GPU deployment](docs/colab-deployment.md)
+- [System Architecture](docs/architecture.md)
+- [AI and Agent Engineering](docs/ai-engineering.md)
+- [API Reference](docs/api-reference.md)
+- [Development Guide](docs/development.md)
+- [CI/CD and Release Operations](docs/ci-cd.md)
+- [Colab GPU Deployment](docs/colab-deployment.md)
 
-# Build and run
-docker-compose up --build
+## Security
 
-# Run with GPU support (uncomment GPU section in docker-compose.yml)
-docker-compose up --build
-```
-
-## 📋 API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Liveness probe |
-| GET | `/readiness` | Readiness probe (checks AI models) |
-| POST | `/api/v1/video/generate` | Generate video (batch) |
-| POST | `/api/v1/video/livestream/jobs` | Upload host/product images and create a micro-scene livestream video job |
-| GET | `/api/v1/video/livestream/jobs/{job_id}/outputs` | Get scene clips and final livestream video URL |
-| GET | `/api/v1/video/config` | Get supported video config |
-| POST | `/api/v1/tts/synthesize` | Synthesize speech (batch) |
-| GET | `/api/v1/tts/voices` | List available voices |
-| GET | `/api/v1/jobs/{job_id}` | Get job status |
-| WS | `/ws/video/generate` | Video generation (streaming) |
-| WS | `/ws/tts/stream` | TTS synthesis (streaming) |
-
-TEST-WRAP-PIPELINE
-
-python tests/wraptest.py                          # Full pipeline
-python tests/wraptest.py --step generate-script   # Chỉ tạo script
-python tests/wraptest.py --provider local         # Dùng fallback rule-based
+- Secrets are loaded from environment variables and never committed.
+- Provider SDKs remain behind domain ports to keep credentials and failures at
+  the infrastructure boundary.
+- Containers run as an unprivileged user and expose health checks.
+- No npm manifest remains in the repository, so the removed PostCSS package is
+  not part of the dependency graph or production artifact.
+- Dependency updates are proposed by Dependabot and validated by CI before merge.

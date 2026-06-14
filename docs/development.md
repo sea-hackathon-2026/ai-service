@@ -23,6 +23,17 @@ the same in-memory engine whose tables are created by the fixture. This is the
 required pattern for new persistence tests; changing a module-level engine does
 not replace an already-wired FastAPI dependency.
 
+## CI/CD Expectations
+
+Every pull request must pass the same Ruff, compilation, dependency, and pytest
+commands used locally. A successful CI run on `main` triggers the container
+publishing workflow; failed or cancelled CI runs publish nothing. Service images
+are tagged with both `latest` and the source commit SHA so environments can pin
+an immutable release and roll back without rebuilding code.
+
+See [CI/CD and Release Operations](ci-cd.md) for workflow permissions, image
+names, release verification, and rollback behavior.
+
 ## Adding a Model Adapter
 
 1. Identify the domain port, such as `IVideoService`, `ITTSService`, or
