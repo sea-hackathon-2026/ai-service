@@ -2,6 +2,26 @@
 
 [![CI](https://github.com/sea-hackathon-2026/ai-service/actions/workflows/ci.yml/badge.svg)](https://github.com/sea-hackathon-2026/ai-service/actions/workflows/ci.yml)
 
+## Demo Videos
+<table>
+  <tr>
+    <td align="center"><b>Demo 1</b></td>
+    <td align="center"><b>Demo 2</b></td>
+    <td align="center"><b>Demo 3</b></td>
+  </tr>
+  <tr>
+    <td>
+      <video src="https://github.com/user-attachments/assets/3842fc7d-5cc5-4c8f-a45c-0bbb6a2c8f11" controls width="280"></video>
+    </td>
+    <td>
+      <video src="https://github.com/user-attachments/assets/a199ca5d-884a-402b-999c-ee92213480d4" controls width="280"></video>
+    </td>
+    <td>
+      <video src="https://github.com/user-attachments/assets/f4fff39c-b673-4149-aff8-a4952b44872d" controls width="280"></video>
+    </td>
+  </tr>
+</table>
+
 Backend-only AI platform for live-commerce automation. The monorepo contains
 three independently deployable Python services with explicit Clean Architecture
 boundaries, isolated dependencies, automated tests, and container delivery.
